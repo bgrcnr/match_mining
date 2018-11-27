@@ -11,6 +11,10 @@ require(devtools)
 require(nnet)
 library(adabag)
 
+rm(list=ls())
+gc()
+
+
 source('data_preprocessing.r')
 source('feature_extraction.r')
 source('performance_metrics.r')
@@ -22,7 +26,7 @@ matches_data_path = "Files/df9b1196-e3cf-4cc7-9159-f236fe738215_matches.rds"
 odd_details_data_path = "Files/df9b1196-e3cf-4cc7-9159-f236fe738215_odd_details.rds"
 
 #train and test dates
-testStart=as.Date('2018-08-16')
+testStart=as.Date('2018-06-16')
 trainStart=as.Date('2012-07-15')
 rem_miss_threshold=0.01 #parameter for removing bookmaker odds with missing ratio greater than this threshold
 
@@ -34,6 +38,46 @@ odd_details_raw=readRDS(odd_details_data_path)
 #matched datapreprocessing function is edited, it adds unixdate and weekday columns
 matches=matches_data_preprocessing(matches_raw)
 
+
+########## DAY BEFORE MATCH INFO GENERATION ####### 
+#### VERY UGLY :( #######
+
+# Calculating Day Before Match
+x <- matches[,c(2,3,4,5)]
+x1 <- matches[,c(2,3,5)]
+x2 <- matches[,c(2,4,5)]
+
+names <- c("matchId", "Team", "Match_Date")
+colnames(x1) <- names
+colnames(x2) <- names
+
+x3 <- rbind(x1,x2)
+x3 <- x3[order(Team, -Match_Date)]
+x3$Day_Before_Match <- 1:nrow(x2)
+
+#Formatting the information
+for(i in 1:(nrow(x3)-1))
+{
+  x3[i]$Day_Before_Match <- (x3[i]$Match_Date - x3[i+1]$Match_Date)*(x3[i]$Team == x3[i+1]$Team)
+}
+
+x$home_day <- 1:nrow(x)
+x$away_day <- 1:nrow(x)
+
+
+for(i in 1:nrow(x))
+{
+  x[i]$home_day <- x3[matchId == x[i]$matchId & Team == x[i]$Home]$Day_Before_Match
+  x[i]$away_day <- x3[matchId == x[i]$matchId & Team == x[i]$Away]$Day_Before_Match
+}
+
+#Adding the information into matches data
+matches$Home_Day <- x$home_day
+matches$Away_Day <- x$away_day
+
+rm(x,x1,x2,x3)
+########## END OF DAY BEFORE MATCH INFORMATION
+
 # preprocess odd data
 odd_details=details_data_preprocessing(odd_details_raw,matches)
 
@@ -44,10 +88,12 @@ features=extract_features.openclose(matches,odd_details,pMissThreshold=rem_miss_
 train_features=features[Match_Date>=trainStart & Match_Date<testStart] 
 test_features=features[Match_Date>=testStart] 
 
+
+
+
 #keep complete cases
 train_features <- train_features[complete.cases(train_features)]
 test_features <- test_features[complete.cases(test_features)]
-
 
 #Seperate Results and Data, remove matchID, MatchDate and LeagueID columns
 trainclass <- train_features$Match_Result
@@ -65,9 +111,9 @@ results[1,] <- (testclass == 0)*1
 results[2,] <- (testclass == 1)*1
 results[3,] <- (testclass == 2)*1
 
-
+names(traindata)
 #choose which features to be used as inputs to the model
-cols <- c(3:5,25:30,(ncol(traindata)-3):ncol(traindata))
+cols <- sample(1:ncol(traindata), 10)
 
 
 
@@ -166,6 +212,7 @@ sample_mat[3,] <- t(sample_model$predictions[,5])
 # average RPS and RPS Matrix
 rps3 <- RPS_single(sample_mat,results)
 rps3mat <- RPS_matrix(t(sample_mat),t(results))
+
 
 #### End of Instructor's Model
 
