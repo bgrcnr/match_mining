@@ -8,6 +8,8 @@ train_glmnet <- function(train_features, test_features,not_included_feature_indi
     train_class=glm_features$Match_Result
     glm_train_data=glm_features[,-not_included_feature_indices,with=F]
     glm_test_data=test_features[,-not_included_feature_indices,with=F]
+	
+	## Next two lines are added by Bugra to remove model error
     glm_train_data[,Match_Result:=NULL]
     glm_test_data[,Match_Result:=NULL]
     

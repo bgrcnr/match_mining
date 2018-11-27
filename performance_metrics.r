@@ -5,10 +5,10 @@
 #' @param outcomes vector of 3, binary outcomes, should be provided with the same order as probs
 #' @export
 #' @examples
-RPS<- function(probs,outcomes){
+RPS_single<- function(probs,outcomes){
   probs = cumsum(probs)
   outcomes = cumsum(outcomes)
-  RPS = sum((probs-outcomes )^2)
+  RPS = sum((probs-outcomes )^2) / (length(probs)-1)
   return(RPS)
 }
 

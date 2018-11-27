@@ -17,11 +17,13 @@ matches_data_preprocessing <- function(data){
   setnames(temp,c("home","away","score","date"),c("Home","Away","Score","Match_Date"))
   temp[,Home:=tolower(Home)]
   temp[,Away:=tolower(Away)]
+  ### Unix Date is added by Bugra
   temp[,Unix_Date := Match_Date]
   temp[,Match_DateTime:=as.POSIXct(Match_Date,tz="UTC",origin = as.POSIXct("1970-01-01",tz="UTC"))]
   temp[,Match_Hour := format(strptime(Match_DateTime,"%Y-%m-%d %H:%M:%OS"),'%H')]
   temp[,Match_Hour := as.numeric(Match_Hour)]
   temp[,Match_Date := as.Date(Match_DateTime,format="%Y-%m-%d")]
+  ### Match_Day is added by bugra, works with lubridate package
   temp[,Match_Day := wday(Match_Date)]
   temp[,AWA_FLAG:=0]
   temp[(Score %like% "AWA."),`:=`(Score=gsub("AWA.","",Score),AWA_FLAG=1)]
