@@ -111,7 +111,7 @@ RPS_res
 
 
 #Output of RPS_Matrix function
-rps1mat <- RPS_matrix(prob,results)
+rps1mat <- RPS_matrix(t(prob),t(results))
 
 ########## End of Nearest Neighbor Analysis
 
@@ -142,7 +142,7 @@ accuracy_multinom
 RPS2 <- RPS_single(t(predicted_scores), results)
 RPS2
 
-rps2mat <- RPS_matrix(t(predicted_scores), results)
+rps2mat <- RPS_matrix(predicted_scores, t(results))
 
 ####### End of Multinomial Logistic Regression Model
 
@@ -165,8 +165,7 @@ sample_mat[3,] <- t(sample_model$predictions[,5])
 
 # average RPS and RPS Matrix
 rps3 <- RPS_single(sample_mat,results)
-
-rps3mat <- RPS_matrix(sample_mat,results)
+rps3mat <- RPS_matrix(t(sample_mat),t(results))
 
 #### End of Instructor's Model
 
@@ -195,5 +194,6 @@ boosting_probs <- t(match.predbegging$prob)
 rps4 <- RPS_single(boosting_probs,results)
 rps4
 
-rps4mat <- RPS_matrix(boosting_probs,results)
+rps4mat <- RPS_matrix(t(boosting_probs),t(results))
+
 
