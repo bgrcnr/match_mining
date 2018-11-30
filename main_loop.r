@@ -15,31 +15,54 @@ source('data_preprocessing.r')
 source('feature_extraction.r')
 source('performance_metrics.r')
 source('train_models.r')
-### match_processing is for adding average goals, average scores and days before the match
-source('match_processing.r')
 
 #save paths
 matches_data_path = "Files/df9b1196-e3cf-4cc7-9159-f236fe738215_matches.rds"
 odd_details_data_path = "Files/df9b1196-e3cf-4cc7-9159-f236fe738215_odd_details.rds"
 
-#train and test dates
-testStart=as.Date('2018-06-16')
-trainStart=as.Date('2012-09-15')
-rem_miss_threshold=0.01 #parameter for removing bookmaker odds with missing ratio greater than this threshold
-
 # read data
 matches_raw=readRDS(matches_data_path)
 odd_details_raw=readRDS(odd_details_data_path)
+
 
 # preprocess matches
 #matched datapreprocessing function is edited, it adds unixdate and weekday columns
 matches=matches_data_preprocessing(matches_raw)
 
-## Add extra features to matches (winning average, score average, days before the match)
-matches <- match_processing(matches)
 
 # preprocess odd data
 odd_details=details_data_preprocessing(odd_details_raw,matches)
+
+#dummy dates list
+dates <- as.Date('2018-06-16')
+dates <- rep(dates, (2018-2011)*12)
+
+
+#fill dates list by date
+for (j in 2011:2018)
+  {
+  for(i in 1:12)
+    {
+    dates[i+(j-2011)*12] <- as.Date(paste(j,"-",i,"-",15,sep=""))
+    }
+}
+
+##results table
+loopresult <- data.table()
+
+
+##main loop
+for(i in 20:70)
+{
+  for(j in 91:93)
+  {
+    
+#train and test dates
+testStart=as.Date(dates[j])
+trainStart=as.Date(dates[i])
+rem_miss_threshold=0.01 #parameter for removing bookmaker odds with missing ratio greater than this threshold
+
+
 
 # extract open and close odd type features from multiple bookmakers
 features=extract_features.openclose(matches,odd_details,pMissThreshold=rem_miss_threshold,trainStart,testStart)
@@ -49,32 +72,9 @@ train_features=features[Match_Date>=trainStart & Match_Date<testStart]
 test_features=features[Match_Date>=testStart] 
 
 
-
-
 #keep complete cases
 train_features <- train_features[complete.cases(train_features)]
 test_features <- test_features[complete.cases(test_features)]
-
-
-###### PCA ANALYSIS ######
-all_data <- rbind(train_features,test_features)
-all_data <- all_data[,c(-1,-2,-3,-7)]
-all_data <- scale(all_data)
-pca <- princomp(all_data)
-plot(pca)
-summary(pca)
-pca_results <- pca$loadings[,1:5]
-
-selected_columns <- c("Match_Day","Home_Day","Away_Day","Home_Goal_Avg","Away_Goal_Avg","Home_Win_Avg","Away_Win_Avg","Home_Tie_Avg","Away_Tie_Avg","Odd_Open_odd1_Pinnacle", "Odd_Open_oddX_Pinnacle", "Odd_Open_odd2_Pinnacle", 
-                              "Odd_Close_odd1_Pinnacle", "Odd_Close_odd2_Pinnacle", "Odd_Close_oddX_Pinnacle")
-
-all_data <- all_data[,selected_columns]
-all_data <- scale(all_data)
-pca <- princomp(all_data)
-plot(pca)
-summary(pca)
-pca_results <- pca$loadings[,1:7]
-###### PCA ANALYSIS ######
 
 
 #Seperate Results and Data, remove matchID, MatchDate and LeagueID columns
@@ -87,19 +87,17 @@ testdata <- test_features[,c(-1,-2,-3,-7)]
 trainclass <- (trainclass == "Home")*1 + (trainclass == "Away")*2
 testclass <- (testclass == "Home")*1 + (testclass == "Away")*2
 
+
 #Matrix of Results to be used as an input to the RPS function
 results <- matrix(1:(length(testclass)*3), 3)
 results[1,] <- (testclass == 0)*1
 results[2,] <- (testclass == 1)*1
 results[3,] <- (testclass == 2)*1
 
-names(traindata)
+
 #choose which features to be used as inputs to the model
-cols <- selected_columns
-cols <- c("Home_Goal_Avg","Away_Goal_Avg","Home_Win_Avg","Away_Win_Avg","Odd_Open_odd1_Pinnacle", "Odd_Open_oddX_Pinnacle", "Odd_Open_odd2_Pinnacle", 
+cols <- c("Odd_Open_odd1_Pinnacle", "Odd_Open_oddX_Pinnacle", "Odd_Open_odd2_Pinnacle", 
           "Odd_Close_odd1_Pinnacle", "Odd_Close_odd2_Pinnacle", "Odd_Close_oddX_Pinnacle")
-
-
 
 
 #### Model 1 - Nearest Neighbor
@@ -140,7 +138,6 @@ prob <- KODAMA::knn.probability(1:nrow(train1), (nrow(train1)+1):nrow(x), trainc
 rps1 <- RPS_single(prob, results)
 rps1
 
-
 #Output of RPS_Matrix function
 rps1mat <- RPS_matrix(t(prob),t(results))
 
@@ -171,7 +168,6 @@ accuracy_multinom
 
 ##  average RPS and RPS Matrix
 rps2 <- RPS_single(t(predicted_scores), results)
-rps2
 
 rps2mat <- RPS_matrix(predicted_scores, t(results))
 
@@ -229,10 +225,34 @@ rps4
 
 rps4mat <- RPS_matrix(t(boosting_probs),t(results))
 
+#write the results to the table
+loopresult = rbind(loopresult, data.table(TrainDate = dates[i], TestDate = dates[j], 
+                    NN_accuracy_1 = acuracy_knn, NN_accuracy_2 = accuracy_knn_kodama, 
+                    Multinom_accuracy = accuracy_multinom,  NN_rps = rps1, 
+                    Multinom_rps = rps2, Instructor_rps = rps3, Bagging_rps = rps4))
+  }
+}
 
-rps1
-rps2
-rps3
-rps4
+loopresult
+summary(loopresult)
+
+write.csv(ordered_result)
 
 
+ordered_result <- loopresult[order(Multinom_rps,Instructor_rps,Bagging_rps,NN_rps)]
+
+pdf("result_table.pdf", width = 7, height = 12)
+par(mfrow = c(2,1))
+plot(loopresult$NN_rps, ylim = c(min(loopresult$NN_rps), max(loopresult$Bagging_rps)))
+points(loopresult$Multinom_rps, col = "2")
+points(loopresult$Instructor_rps, col = "3")
+points(loopresult$Bagging_rps, col = "4")
+legend("topleft", cex = 0.5, legend = c("NN", "Multinom", "Instructor", "Bagging"), col = c(1,2,3,4), pch = 1 )
+
+plot(loopresult$NN_rps, ylim = c(min(loopresult$NN_rps), max(loopresult$NN_rps)))
+points(loopresult$Multinom_rps, col = "2")
+points(loopresult$Instructor_rps, col = "3")
+legend("topleft", cex = 0.5, legend = c("NN", "Multinom", "Instructor"), col = c(1,2,3), pch = 1 )
+
+
+dev.off()

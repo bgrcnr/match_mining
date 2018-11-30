@@ -1,0 +1,7 @@
+"","  TrainDate","   TestDate","NN_accuracy_1","NN_accuracy_2","Multinom_accuracy","    NN_rps"," Multinom_rps","Instructor_rps"," Bagging_rps"
+"","Min.   :2012-08-15  ","Min.   :2018-07-15  ","Min.   :0.5455  ","Min.   :0.5506  ","Min.   :0.5758  ","Min.   :0.1070  ","Min.   :0.1082  ","Min.   :0.1085  ","Min.   :0.1147  "
+"","1st Qu.:2013-08-15  ","1st Qu.:2018-07-15  ","1st Qu.:0.5859  ","1st Qu.:0.5859  ","1st Qu.:0.5843  ","1st Qu.:0.1102  ","1st Qu.:0.1085  ","1st Qu.:0.1092  ","1st Qu.:0.1233  "
+"","Median :2014-09-15  ","Median :2018-08-15  ","Median :0.6061  ","Median :0.5960  ","Median :0.5859  ","Median :0.1116  ","Median :0.1088  ","Median :0.1102  ","Median :0.1277  "
+"","Mean   :2014-09-14  ","Mean   :2018-08-15  ","Mean   :0.6065  ","Mean   :0.6043  ","Mean   :0.5866  ","Mean   :0.1113  ","Mean   :0.1090  ","Mean   :0.1102  ","Mean   :0.1279  "
+"","3rd Qu.:2015-10-15  ","3rd Qu.:2018-09-15  ","3rd Qu.:0.6180  ","3rd Qu.:0.6180  ","3rd Qu.:0.5955  ","3rd Qu.:0.1125  ","3rd Qu.:0.1095  ","3rd Qu.:0.1108  ","3rd Qu.:0.1320  "
+"","Max.   :2016-10-15  ","Max.   :2018-09-15  ","Max.   :0.6966  ","Max.   :0.6869  ","Max.   :0.5960  ","Max.   :0.1148  ","Max.   :0.1106  ","Max.   :0.1125  ","Max.   :0.1439  "
