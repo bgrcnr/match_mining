@@ -15,6 +15,37 @@ matches_data_preprocessing <- function(data){
   temp = copy(data)
   temp = unique(temp,by="matchId") 
   setnames(temp,c("home","away","score","date"),c("Home","Away","Score","Match_Date"))
+  ##in order to eliminate repeated team names
+  temp[Home %in% c("manchester-utd", "manchester-united"), Home:= "manchester united"]
+  temp[Home == "manchester-city", Home:= "manchester city"]
+  temp[Home == "crystal-palace", Home:= "crystal palace"]
+  temp[Home %in% c("newcastle utd","newcastle united") , Home:= "newcastle"]
+  temp[Home == "stoke city", Home:= "stoke"]
+  temp[Home == "west-ham", Home:= "west ham"]
+  temp[Away %in% c("manchester-utd", "manchester-united"), Away:= "manchester united"]
+  temp[Away == "manchester-city", Away:= "manchester city"]
+  temp[Away == "crystal-palace", Away:= "crystal palace"]
+  temp[Away %in% c("newcastle utd","newcastle united") , Away:= "newcastle"]
+  temp[Away == "stoke city", Away:= "stoke"]
+  temp[Away == "west-ham", Away:= "west ham"]
+  #####################################################################################
+  ##city info added
+  cities = c("blackburn","blackpool", "bolton", "bournemouth","brighton","burnley","cardiff","huddersfield","hull city",
+             "leicester","manchester","middlesbrough","newcastle","norwich","portsmouth","reading","southampton",
+             "stoke","sunderland","swansea","watford","west brom","wigan","wolverhampton")
+  temp[Home %in% cities, Home_City := Home]
+  temp[Away %in% cities, Away_City := Away]
+  temp[Home %in% c("arsenal", "chelsea","crystal palace","fulham","qpr","tottenham","west ham"), Home_City:= "london"]
+  temp[Away %in% c("arsenal", "chelsea","crystal palace","fulham","qpr","tottenham","west ham"), Away_City:= "london"]
+  temp[Home %in% c("aston villa", "birmingham"), Home_City:= "birmingham"]
+  temp[Away %in% c("aston villa", "birmingham"), Away_City:= "birmingham"]
+  temp[Home %in% c("manchester united", "manchester city"), Home_City:="manchester"] 
+  temp[Away %in% c("manchester united", "manchester city"), Away_City:="manchester"] 
+  temp[Home %in% c("everton", "liverpool"), Home_City:= "liverpool"]
+  temp[Away %in% c("everton", "liverpool"), Away_City:= "liverpool"]
+  temp[Home == "wolves", Home_City:= "wolverhampton"]
+  temp[Away == "wolves", Away_City:= "wolverhampton"]
+  # #####################################################################################  
   temp[,Home:=tolower(Home)]
   temp[,Away:=tolower(Away)]
   ### Unix Date is added by Bugra
