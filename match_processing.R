@@ -1,0 +1,224 @@
+match_processing <- function(data)
+{
+temp <- copy(data)
+
+# Calculating Day Before Match
+x <- temp[,c(2,3,4,5)]
+x1 <- temp[,c(2,3,5)]
+x2 <- temp[,c(2,4,5)]
+
+names <- c("matchId", "Team", "Match_Date")
+colnames(x1) <- names
+colnames(x2) <- names
+
+x3 <- rbind(x1,x2)
+x3 <- x3[order(Team, -Match_Date)]
+x3$Day_Before_Match <- 1:nrow(x2)
+
+#Formatting the information
+for(i in 1:(nrow(x3)-1))
+{
+  x3[i]$Day_Before_Match <- (x3[i]$Match_Date - x3[i+1]$Match_Date)*(x3[i]$Team == x3[i+1]$Team)
+}
+
+x$home_day <- 1:nrow(x)
+x$away_day <- 1:nrow(x)
+
+
+for(i in 1:nrow(x))
+{
+  x[i]$home_day <- x3[matchId == x[i]$matchId & Team == x[i]$Home]$Day_Before_Match
+  x[i]$away_day <- x3[matchId == x[i]$matchId & Team == x[i]$Away]$Day_Before_Match
+}
+
+#Adding the information into temp data
+temp$Home_Day <- x$home_day
+temp$Away_Day <- x$away_day
+
+#Remove unnecessary data
+rm(x,x1,x2,x3)
+
+#Remove days larger than 14
+temp[, Home_Day := (Home_Day>=14)*14 + (Home_Day<14)*Home_Day]
+temp[, Away_Day := (Away_Day>=14)*14 + (Away_Day<14)*Away_Day]
+
+########## END OF DAY BEFORE MATCH INFORMATION
+
+############# Average GOALS of the last 5 temp
+
+x <- temp[,c(2,3,4,5,10,11,12,14,15,16)]
+x1 <- x[,c(1,2,4,5)]
+x2 <- x[,c(1,3,4,6)]
+names <- c("matchId", "Team", "Date", "Score")
+colnames(x1) <- names
+colnames(x2) <- names
+x3 <- rbind(x1,x2)
+x3 <- x3[order(Team, Date)]
+x3$avg_score <- x3$Score
+x3$avg_score <- as.numeric(x3$avg_score)
+
+for(i in 5:(nrow(x3)))
+{
+  x3[i,]$avg_score <- sum(x3[(i-4):i,]$Score)*(x3[i-4,]$Team == x3[i,]$Team)/5
+}
+
+x3$Last_Average <- x3$avg_score
+
+for(i in 2:nrow(x3))
+{
+  x3[i,]$Last_Average <- x3[i-1,]$avg_score 
+}
+
+
+
+for(i in 2:nrow(x3))
+{
+  if(is.na(x3[i,]$Last_Average) == 1) 
+  {
+    x3[i,]$Last_Average <- x3[i-1,]$Last_Average 
+  }
+}
+
+x$Home_Goal_Avg <- as.numeric(1:nrow(x))
+x$Away_Goal_Avg <- as.numeric(1:nrow(x))
+
+
+for(i in 1:nrow(x))
+{
+  x[i]$Home_Goal_Avg <- x3[matchId == x[i]$matchId & Team == x[i]$Home]$Last_Average
+  x[i]$Away_Goal_Avg <- x3[matchId == x[i]$matchId & Team == x[i]$Away]$Last_Average
+}
+
+temp$Home_Goal_Avg <- x$Home_Goal_Avg
+temp$Away_Goal_Avg <- x$Away_Goal_Avg
+
+
+#Remove unnecessary data
+rm(x,x1,x2,x3)
+
+###### END OF AVERAGE GOALS ####
+
+########## RESULT RATIOS
+
+x <- temp[,c(2,3,4,5,10,11,12,14,15,16)]
+x1 <- x[,c(1,2,4,8)]
+x2 <- x[,c(1,3,4,10)]
+names <- c("matchId", "Team", "Date", "Win_Lose")
+colnames(x1) <- names
+colnames(x2) <- names
+x3 <- rbind(x1,x2)
+x3 <- x3[order(Team, Date)]
+
+x3$avg_winning <- as.numeric(x3$Win_Lose)
+
+for(i in 5:(nrow(x3)))
+{
+  x3[i,]$avg_winning <- sum(x3[(i-4):i,]$Win_Lose)*(x3[i-4,]$Team == x3[i,]$Team)/5
+}
+
+for(i in 1:(nrow(x3)))
+{
+  if(is.na(x3[i,]$avg_winning) == 1) 
+  {
+    x3[i,]$avg_winning <- x3[i,]$Win_Lose
+  }
+}
+
+x3$Last_Winning <- x3$avg_winning
+
+for(i in 2:nrow(x3))
+{
+  x3[i,]$Last_Winning <- x3[i-1,]$avg_winning 
+}
+
+
+for(i in 2:nrow(x3))
+{
+  if(is.na(x3[i,]$Last_Winning) == 1) 
+  {
+    x3[i,]$Last_Winning <- x3[i-1,]$Last_Winning 
+  }
+}
+
+x$Home_Win_Avg <- as.numeric(1:nrow(x))
+x$Away_Win_Avg <- as.numeric(1:nrow(x))
+
+
+for(i in 1:nrow(x))
+{
+  x[i]$Home_Win_Avg <- x3[matchId == x[i]$matchId & Team == x[i]$Home]$Last_Winning
+  x[i]$Away_Win_Avg <- x3[matchId == x[i]$matchId & Team == x[i]$Away]$Last_Winning
+}
+
+
+
+temp$Home_Win_Avg <- x$Home_Win_Avg
+temp$Away_Win_Avg <- x$Away_Win_Avg
+
+#Remove unnecessary data
+rm(x,x1,x2,x3)
+
+#### END OF WINNING RATIO
+
+##### TIE RATIO
+
+x <- temp[,c(2,3,4,5,10,11,12,14,15,16)]
+x1 <- x[,c(1,2,4,9)]
+x2 <- x[,c(1,3,4,9)]
+names <- c("matchId", "Team", "Date", "Tie")
+colnames(x1) <- names
+colnames(x2) <- names
+x3 <- rbind(x1,x2)
+x3 <- x3[order(Team, Date)]
+
+x3$avg_tie <- as.numeric(x3$Tie)
+
+for(i in 5:(nrow(x3)))
+{
+  x3[i,]$avg_tie <- sum(x3[(i-4):i,]$Tie)*(x3[i-4,]$Team == x3[i,]$Team)/5
+}
+
+for(i in 1:(nrow(x3)))
+{
+  if(is.na(x3[i,]$avg_tie) == 1) 
+  {
+    x3[i,]$avg_tie <- x3[i,]$Tie
+  }
+}
+
+x3$Last_Tie <- x3$avg_tie
+
+for(i in 2:nrow(x3))
+{
+  x3[i,]$Last_Tie <- x3[i-1,]$avg_tie 
+}
+
+
+for(i in 2:nrow(x3))
+{
+  if(is.na(x3[i,]$Last_Tie) == 1) 
+  {
+    x3[i,]$Last_Tie <- x3[i-1,]$Last_Tie 
+  }
+}
+
+x$Home_Tie_Avg <- as.numeric(1:nrow(x))
+x$Away_Tie_Avg <- as.numeric(1:nrow(x))
+
+
+for(i in 1:nrow(x))
+{
+  x[i]$Home_Tie_Avg <- x3[matchId == x[i]$matchId & Team == x[i]$Home]$Last_Tie
+  x[i]$Away_Tie_Avg <- x3[matchId == x[i]$matchId & Team == x[i]$Away]$Last_Tie
+}
+
+temp$Home_Tie_Avg <- x$Home_Tie_Avg
+temp$Away_Tie_Avg <- x$Away_Tie_Avg
+
+
+#Remove unnecessary data
+rm(x,x1,x2,x3)
+
+gc()
+return(temp)
+}
