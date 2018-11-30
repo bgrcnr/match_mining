@@ -32,20 +32,22 @@ matches_data_preprocessing <- function(data){
   ##city info added
   cities = c("blackburn","blackpool", "bolton", "bournemouth","brighton","burnley","cardiff","huddersfield","hull city",
              "leicester","manchester","middlesbrough","newcastle","norwich","portsmouth","reading","southampton",
-             "stoke","sunderland","swansea","watford","west brom","wigan","wolverhampton")
+             "stoke","sunderland","swansea","watford","wigan","wolverhampton")
   temp[Home %in% cities, Home_City := Home]
   temp[Away %in% cities, Away_City := Away]
   temp[Home %in% c("arsenal", "chelsea","crystal palace","fulham","qpr","tottenham","west ham"), Home_City:= "london"]
   temp[Away %in% c("arsenal", "chelsea","crystal palace","fulham","qpr","tottenham","west ham"), Away_City:= "london"]
-  temp[Home %in% c("aston villa", "birmingham"), Home_City:= "birmingham"]
-  temp[Away %in% c("aston villa", "birmingham"), Away_City:= "birmingham"]
+  temp[Home %in% c("aston villa", "birmingham", "west brom"), Home_City:= "birmingham"]
+  temp[Away %in% c("aston villa", "birmingham", "west brom"), Away_City:= "birmingham"]
   temp[Home %in% c("manchester united", "manchester city"), Home_City:="manchester"] 
   temp[Away %in% c("manchester united", "manchester city"), Away_City:="manchester"] 
   temp[Home %in% c("everton", "liverpool"), Home_City:= "liverpool"]
   temp[Away %in% c("everton", "liverpool"), Away_City:= "liverpool"]
   temp[Home == "wolves", Home_City:= "wolverhampton"]
   temp[Away == "wolves", Away_City:= "wolverhampton"]
-  # #####################################################################################  
+  #####################################################################################  
+  
+  
   temp[,Home:=tolower(Home)]
   temp[,Away:=tolower(Away)]
   ### Unix Date is added by Bugra
@@ -106,7 +108,7 @@ details_data_preprocessing <- function(data,matches,which_bets=c('1x2'),remove_b
   details = details[betType %in% which_bets]
   details[,totalhandicap:=NULL]
 
-  details = merge(details,matches[,list(matchId,Match_Date)],by="matchId",all.x=T)
+  details = merge(details,matches[,list(matchId,Match_Date)],by="matchId",all.x=T )
   setnames(details,"date","OddChangeDateTime")
   details[,OddChangeDateTime:=as.POSIXct(OddChangeDateTime,tz="UTC",origin = as.POSIXct("1970-01-01",tz="UTC"))]
   details = details[difftime(Match_Date,OddChangeDateTime, units = "days") <= removeOlderThan] #remove odds seen earlier than 10 days from the match date

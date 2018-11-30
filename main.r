@@ -27,9 +27,12 @@ testStart=as.Date('2018-06-16')
 trainStart=as.Date('2012-09-15')
 rem_miss_threshold=0.01 #parameter for removing bookmaker odds with missing ratio greater than this threshold
 
+
 # read data
+city_distances <- read.csv("city_distances.csv")
 matches_raw=readRDS(matches_data_path)
 odd_details_raw=readRDS(odd_details_data_path)
+
 
 # preprocess matches
 #matched datapreprocessing function is edited, it adds unixdate and weekday columns
@@ -38,50 +41,62 @@ matches=matches_data_preprocessing(matches_raw)
 ## Add extra features to matches (winning average, score average, days before the match)
 matches <- match_processing(matches)
 
+### distances
+#x is a dummy variable to protect the type of matches data 
+x <- matches[,c(1,2)]
+x$city_combo <- paste(matches$Home_City,matches$Away_City,sep="-")
+city_distances <- as.data.table(city_distances)
+city_distances <- unique(city_distances)
+city_distances$city_combo <- paste(city_distances$city_1,city_distances$city_2,sep="-")
+x <- merge(x, city_distances[,c("city_combo","distance")], by= "city_combo")
+matches$distance <- x$distance
+rm(x)
+###
+
 # preprocess odd data
 odd_details=details_data_preprocessing(odd_details_raw,matches)
 
 # extract open and close odd type features from multiple bookmakers
 features=extract_features.openclose(matches,odd_details,pMissThreshold=rem_miss_threshold,trainStart,testStart)
+names(matches)
 
 # divide data based on the provided dates 
 train_features=features[Match_Date>=trainStart & Match_Date<testStart] 
 test_features=features[Match_Date>=testStart] 
 
 
-
-
 #keep complete cases
 train_features <- train_features[complete.cases(train_features)]
 test_features <- test_features[complete.cases(test_features)]
 
-
+names(train_features)
+str(all_data)
 ###### PCA ANALYSIS ######
 all_data <- rbind(train_features,test_features)
-all_data <- all_data[,c(-1,-2,-3,-7)]
+all_data <- all_data[,c(-1,-2,-3,-4,-5,-9)]
 all_data <- scale(all_data)
 pca <- princomp(all_data)
 plot(pca)
 summary(pca)
-pca_results <- pca$loadings[,1:5]
+pca_results <- pca$loadings[,1:2]
 
-selected_columns <- c("Match_Day","Home_Day","Away_Day","Home_Goal_Avg","Away_Goal_Avg","Home_Win_Avg","Away_Win_Avg","Home_Tie_Avg","Away_Tie_Avg","Odd_Open_odd1_Pinnacle", "Odd_Open_oddX_Pinnacle", "Odd_Open_odd2_Pinnacle", 
+selected_columns <- c("distance","Match_Day","Odd_Open_odd1_Pinnacle", "Odd_Open_oddX_Pinnacle", "Odd_Open_odd2_Pinnacle", 
                               "Odd_Close_odd1_Pinnacle", "Odd_Close_odd2_Pinnacle", "Odd_Close_oddX_Pinnacle")
 
-all_data <- all_data[,selected_columns]
+all_data <- all_data[,..selected_columns]
 all_data <- scale(all_data)
 pca <- princomp(all_data)
 plot(pca)
 summary(pca)
-pca_results <- pca$loadings[,1:7]
+pca_results <- pca$loadings[,1:3]
 ###### PCA ANALYSIS ######
 
 
 #Seperate Results and Data, remove matchID, MatchDate and LeagueID columns
 trainclass <- train_features$Match_Result
-traindata <- train_features[,c(-1,-2,-3,-7)]
+traindata <- train_features[,c(-1,-2,-3,-4,-5,-9)]
 testclass <- test_features$Match_Result
-testdata <- test_features[,c(-1,-2,-3,-7)]
+testdata <- test_features[,c(-1,-2,-3,-4,-5,-9)]
 
 #Results as numeric values
 trainclass <- (trainclass == "Home")*1 + (trainclass == "Away")*2
@@ -95,8 +110,7 @@ results[3,] <- (testclass == 2)*1
 
 names(traindata)
 #choose which features to be used as inputs to the model
-cols <- selected_columns
-cols <- c("Home_Goal_Avg","Away_Goal_Avg","Home_Win_Avg","Away_Win_Avg","Odd_Open_odd1_Pinnacle", "Odd_Open_oddX_Pinnacle", "Odd_Open_odd2_Pinnacle", 
+cols <- c("distance","Odd_Open_odd1_Pinnacle", "Odd_Open_oddX_Pinnacle", "Odd_Open_odd2_Pinnacle", 
           "Odd_Close_odd1_Pinnacle", "Odd_Close_odd2_Pinnacle", "Odd_Close_oddX_Pinnacle")
 
 
@@ -199,7 +213,7 @@ sample_mat[3,] <- t(sample_model$predictions[,5])
 rps3 <- RPS_single(sample_mat,results)
 rps3mat <- RPS_matrix(t(sample_mat),t(results))
 
-
+rps3
 #### End of Instructor's Model
 
 
