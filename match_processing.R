@@ -3,7 +3,7 @@ match_processing <- function(data)
 temp <- copy(data)
 
 # Calculating Day Before Match
-x <- temp[,c(2,3,4,5)]
+x <- temp[,c("matchId","Home","Away","Match_Date")]
 x1 <- temp[,c(2,3,5)]
 x2 <- temp[,c(2,4,5)]
 
@@ -24,16 +24,14 @@ for(i in 1:(nrow(x3)-1))
 x$home_day <- 1:nrow(x)
 x$away_day <- 1:nrow(x)
 
-
-for(i in 1:nrow(x))
-{
-  x[i]$home_day <- x3[matchId == x[i]$matchId & Team == x[i]$Home]$Day_Before_Match
-  x[i]$away_day <- x3[matchId == x[i]$matchId & Team == x[i]$Away]$Day_Before_Match
-}
+x <- merge(x,x3[,c("matchId","Team", "Day_Before_Match")],by.x = c("matchId","Home"), by.y = c("matchId","Team")  )
+colnames(x)[ncol(x)] <- "Home_Day"
+x <- merge(x,x3[,c("matchId","Team", "Day_Before_Match")],by.x = c("matchId","Away"), by.y = c("matchId","Team")  )
+colnames(x)[ncol(x)] <- "Away_Day"
 
 #Adding the information into temp data
-temp$Home_Day <- x$home_day
-temp$Away_Day <- x$away_day
+temp$Home_Day <- x$Home_Day
+temp$Away_Day <- x$Away_Day
 
 #Remove unnecessary data
 rm(x,x1,x2,x3)
@@ -46,10 +44,10 @@ temp[, Away_Day := (Away_Day>=14)*14 + (Away_Day<14)*Away_Day]
 
 ############# Average GOALS of the last 5 temp
 
-x <- temp[,c(2,3,4,5,10,11,12,14,15,16)]
-x1 <- x[,c(1,2,4,5)]
-x2 <- x[,c(1,3,4,6)]
-names <- c("matchId", "Team", "Date", "Score")
+x <- temp[,c("matchId", "Match_Date", "Home", "Away", "Home_Score", "Away_Score")]
+x1 <- x[,c(1,2,3,5)]
+x2 <- x[,c(1,2,4,6)]
+names <- c("matchId","Date", "Team", "Score")
 colnames(x1) <- names
 colnames(x2) <- names
 x3 <- rbind(x1,x2)
@@ -79,15 +77,12 @@ for(i in 2:nrow(x3))
   }
 }
 
-x$Home_Goal_Avg <- as.numeric(1:nrow(x))
-x$Away_Goal_Avg <- as.numeric(1:nrow(x))
 
 
-for(i in 1:nrow(x))
-{
-  x[i]$Home_Goal_Avg <- x3[matchId == x[i]$matchId & Team == x[i]$Home]$Last_Average
-  x[i]$Away_Goal_Avg <- x3[matchId == x[i]$matchId & Team == x[i]$Away]$Last_Average
-}
+x <- merge(x,x3[,c("matchId","Team", "Last_Average")],by.x = c("matchId","Home"), by.y = c("matchId","Team")  )
+colnames(x)[ncol(x)] <- "Home_Goal_Avg"
+x <- merge(x,x3[,c("matchId","Team", "Last_Average")],by.x = c("matchId","Away"), by.y = c("matchId","Team")  )
+colnames(x)[ncol(x)] <- "Away_Goal_Avg"
 
 temp$Home_Goal_Avg <- x$Home_Goal_Avg
 temp$Away_Goal_Avg <- x$Away_Goal_Avg
@@ -100,9 +95,9 @@ rm(x,x1,x2,x3)
 
 ########## RESULT RATIOS
 
-x <- temp[,c(2,3,4,5,10,11,12,14,15,16)]
-x1 <- x[,c(1,2,4,8)]
-x2 <- x[,c(1,3,4,10)]
+x <- temp[,c("matchId","Home","Away","Match_Date","Result_Home","Result_Away")]
+x1 <- x[,c(1,2,4,5)]
+x2 <- x[,c(1,3,4,6)]
 names <- c("matchId", "Team", "Date", "Win_Lose")
 colnames(x1) <- names
 colnames(x2) <- names
@@ -140,16 +135,11 @@ for(i in 2:nrow(x3))
   }
 }
 
-x$Home_Win_Avg <- as.numeric(1:nrow(x))
-x$Away_Win_Avg <- as.numeric(1:nrow(x))
 
-
-for(i in 1:nrow(x))
-{
-  x[i]$Home_Win_Avg <- x3[matchId == x[i]$matchId & Team == x[i]$Home]$Last_Winning
-  x[i]$Away_Win_Avg <- x3[matchId == x[i]$matchId & Team == x[i]$Away]$Last_Winning
-}
-
+x <- merge(x,x3[,c("matchId","Team", "Last_Winning")],by.x = c("matchId","Home"), by.y = c("matchId","Team")  )
+colnames(x)[ncol(x)] <- "Home_Win_Avg"
+x <- merge(x,x3[,c("matchId","Team", "Last_Winning")],by.x = c("matchId","Away"), by.y = c("matchId","Team")  )
+colnames(x)[ncol(x)] <- "Away_Win_Avg"
 
 
 temp$Home_Win_Avg <- x$Home_Win_Avg
@@ -162,9 +152,9 @@ rm(x,x1,x2,x3)
 
 ##### TIE RATIO
 
-x <- temp[,c(2,3,4,5,10,11,12,14,15,16)]
-x1 <- x[,c(1,2,4,9)]
-x2 <- x[,c(1,3,4,9)]
+x <- temp[,c("matchId","Home","Away","Match_Date","Result_Tie")]
+x1 <- x[,c(1,2,4,5)]
+x2 <- x[,c(1,3,4,5)]
 names <- c("matchId", "Team", "Date", "Tie")
 colnames(x1) <- names
 colnames(x2) <- names
@@ -202,15 +192,11 @@ for(i in 2:nrow(x3))
   }
 }
 
-x$Home_Tie_Avg <- as.numeric(1:nrow(x))
-x$Away_Tie_Avg <- as.numeric(1:nrow(x))
 
-
-for(i in 1:nrow(x))
-{
-  x[i]$Home_Tie_Avg <- x3[matchId == x[i]$matchId & Team == x[i]$Home]$Last_Tie
-  x[i]$Away_Tie_Avg <- x3[matchId == x[i]$matchId & Team == x[i]$Away]$Last_Tie
-}
+x <- merge(x,x3[,c("matchId","Team", "Last_Tie")],by.x = c("matchId","Home"), by.y = c("matchId","Team")  )
+colnames(x)[ncol(x)] <- "Home_Tie_Avg"
+x <- merge(x,x3[,c("matchId","Team", "Last_Tie")],by.x = c("matchId","Away"), by.y = c("matchId","Team")  )
+colnames(x)[ncol(x)] <- "Away_Tie_Avg"
 
 temp$Home_Tie_Avg <- x$Home_Tie_Avg
 temp$Away_Tie_Avg <- x$Away_Tie_Avg

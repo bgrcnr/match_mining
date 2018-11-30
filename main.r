@@ -54,23 +54,19 @@ rm(x)
 ###
 
 # preprocess odd data
-odd_details=details_data_preprocessing(odd_details_raw,matches)
+odd_details=details_data_preprocessing(odd_details_raw,matches,which_bets = c("1x2"))
 
 # extract open and close odd type features from multiple bookmakers
 features=extract_features.openclose(matches,odd_details,pMissThreshold=rem_miss_threshold,trainStart,testStart)
-names(matches)
 
 # divide data based on the provided dates 
 train_features=features[Match_Date>=trainStart & Match_Date<testStart] 
 test_features=features[Match_Date>=testStart] 
 
-
 #keep complete cases
 train_features <- train_features[complete.cases(train_features)]
 test_features <- test_features[complete.cases(test_features)]
 
-names(train_features)
-str(all_data)
 ###### PCA ANALYSIS ######
 all_data <- rbind(train_features,test_features)
 all_data <- all_data[,c(-1,-2,-3,-4,-5,-9)]
@@ -80,15 +76,16 @@ plot(pca)
 summary(pca)
 pca_results <- pca$loadings[,1:2]
 
-selected_columns <- c("distance","Match_Day","Odd_Open_odd1_Pinnacle", "Odd_Open_oddX_Pinnacle", "Odd_Open_odd2_Pinnacle", 
+selected_columns <- c("Match_Hour","Home_Day","Away_Day","Home_Goal_Avg","Away_Goal_Avg","Home_Win_Avg","Away_Win_Avg",
+                      "Home_Tie_Avg","Away_Tie_Avg","distance","Match_Day","Odd_Open_odd1_Pinnacle", "Odd_Open_oddX_Pinnacle", "Odd_Open_odd2_Pinnacle", 
                               "Odd_Close_odd1_Pinnacle", "Odd_Close_odd2_Pinnacle", "Odd_Close_oddX_Pinnacle")
 
-all_data <- all_data[,..selected_columns]
+all_data <- all_data[,selected_columns]
 all_data <- scale(all_data)
 pca <- princomp(all_data)
 plot(pca)
 summary(pca)
-pca_results <- pca$loadings[,1:3]
+pca_results <- pca$loadings[,1:7]
 ###### PCA ANALYSIS ######
 
 
@@ -110,9 +107,12 @@ results[3,] <- (testclass == 2)*1
 
 names(traindata)
 #choose which features to be used as inputs to the model
+cols <- selected_columns
 cols <- c("distance","Odd_Open_odd1_Pinnacle", "Odd_Open_oddX_Pinnacle", "Odd_Open_odd2_Pinnacle", 
           "Odd_Close_odd1_Pinnacle", "Odd_Close_odd2_Pinnacle", "Odd_Close_oddX_Pinnacle")
 
+#### Best results
+cols <-  c("Odd_Close_odd1_Pinnacle","Odd_Close_odd2_Pinnacle", "Odd_Close_oddX_Pinnacle")
 
 
 
@@ -185,7 +185,6 @@ accuracy_multinom
 
 ##  average RPS and RPS Matrix
 rps2 <- RPS_single(t(predicted_scores), results)
-rps2
 
 rps2mat <- RPS_matrix(predicted_scores, t(results))
 
@@ -244,9 +243,6 @@ rps4
 rps4mat <- RPS_matrix(t(boosting_probs),t(results))
 
 
-rps1
-rps2
-rps3
-rps4
+
 
 

@@ -34,7 +34,7 @@ extract_features.openclose <- function(matches,odd_details,pMissThreshold=0.01,t
 
   details = dcast(feature_odd_details,matchId~oddtype+bookmaker,value.var = c("Odd_Open","Odd_Close"))
   columnsToKeep = grep(paste(bookiesToKeep,collapse="|"),names(details),value=T)
-  details = details[,c('matchId',columnsToKeep),with=F]
+  details = details[,c("matchId",columnsToKeep),with=F]
   #HANDLE MISSINGS END
 
 
