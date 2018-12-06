@@ -23,27 +23,80 @@ matches_data_path = "Files/df9b1196-e3cf-4cc7-9159-f236fe738215_matches.rds"
 odd_details_data_path = "Files/df9b1196-e3cf-4cc7-9159-f236fe738215_odd_details.rds"
 
 #train and test dates
-testStart=as.Date('2018-06-16')
+testStart=as.Date('2018-08-16')
 trainStart=as.Date('2012-09-15')
 rem_miss_threshold=0.01 #parameter for removing bookmaker odds with missing ratio greater than this threshold
 
 
 # read data
 city_distances <- read.csv("city_distances.csv")
+s_2018 <- as.data.table(read.csv("Files/2018_data.csv"))
+s_2017 <- as.data.table(read.csv("Files/2017_data.csv"))
+s_2016 <- as.data.table(read.csv("Files/2016_data.csv"))
+s_2015 <- as.data.table(read.csv("Files/2015_data.csv"))
+s_2014 <- as.data.table(read.csv("Files/2014_data.csv"))
+s_2013 <- as.data.table(read.csv("Files/2013_data.csv"))
+s_2012 <- as.data.table(read.csv("Files/2012_data.csv"))
+s_2011 <- as.data.table(read.csv("Files/2011_data.csv"))
+s_2010 <- as.data.table(read.csv("Files/2010_data.csv"))
+
 matches_raw=readRDS(matches_data_path)
 odd_details_raw=readRDS(odd_details_data_path)
 
-
 # preprocess matches
 #matched datapreprocessing function is edited, it adds unixdate and weekday columns
+
 matches=matches_data_preprocessing(matches_raw)
+k <- matches_data_preprocessing(matches_raw)
+
+
+additional_data <- rbind(s_2010[,1:23],s_2011[,1:23],s_2012[,1:23],s_2013[,1:23],s_2014[,1:23]
+                           ,s_2015[,1:23],s_2016[,1:23],s_2017[,1:23],s_2018[,1:23])
+
+
+additional_data$HomeTeam <- as.character(additional_data$HomeTeam)
+additional_data$AwayTeam <- as.character(additional_data$AwayTeam)
+additional_data$Date <- dmy(additional_data$Date)
+
+
+additional_data <- additional_data[complete.cases(additional_data)]
+
+names1 <- sort(unique(additional_data$HomeTeam))
+names2 <- sort(unique(matches$Home))
+names3 <- cbind(names1,names2)
+
+
+
+for(i in 1:nrow(names3))
+{
+  additional_data[HomeTeam == names3[i,1]]$HomeTeam <- names3[i,2]
+  additional_data[AwayTeam == names3[i,1]]$AwayTeam <- names3[i,2]
+  
+}
+
+additional_data <- additional_data[,Div:=NULL]
+
+col_names <- c("Date", "Home", "Away", "Full Time Home Team Goals",
+               "Full Time Away Team Goals", "Full Time Result" ,"Half Time Home Team Goals",
+               "Half Time Away Team Goals", "Half Time Result", "Referee", "Home Team Shots",
+               "Away Team Shots", "Home Team Shots on Target", "Away Team Shots on Target",
+               "Home Team Fouls Committed", "Away Team Fouls Committed", "Home Team Corners",
+               "Away Team Corners", "Home Team Yellow Cards", "Away Team Yellow Cards",
+               "Home Team Red Cards", "Away Team Red Cards")
+
+colnames(additional_data) <- col_names
+
+
+comp_data <- merge(matches, additional_data, by.x = c("Match_Date", "Home", "Away"), by.y  = c("Date", "Home", "Away"), all.x = TRUE)
+
 
 ## Add extra features to matches (winning average, score average, days before the match)
-matches <- match_processing(matches)
+matches <- match_processing(comp_data)
+
 
 ### distances
 #x is a dummy variable to protect the type of matches data 
-x <- matches[,c(1,2)]
+x <- matches[,c("Home_City","Away_City")]
 x$city_combo <- paste(matches$Home_City,matches$Away_City,sep="-")
 city_distances <- as.data.table(city_distances)
 city_distances <- unique(city_distances)
@@ -81,19 +134,23 @@ selected_columns <- c("Match_Hour","Home_Day","Away_Day","Home_Goal_Avg","Away_G
                               "Odd_Close_odd1_Pinnacle", "Odd_Close_odd2_Pinnacle", "Odd_Close_oddX_Pinnacle")
 
 all_data <- all_data[,selected_columns]
+
 all_data <- scale(all_data)
+
 pca <- princomp(all_data)
+
 plot(pca)
 summary(pca)
 pca_results <- pca$loadings[,1:7]
 ###### PCA ANALYSIS ######
 
+cbind(names(train_features), c(1:ncol(train_features)))
 
 #Seperate Results and Data, remove matchID, MatchDate and LeagueID columns
 trainclass <- train_features$Match_Result
-traindata <- train_features[,c(-1,-2,-3,-4,-5,-9)]
+traindata <- train_features[,c(7:8,29:51,52,61,70,81,90,99)]
 testclass <- test_features$Match_Result
-testdata <- test_features[,c(-1,-2,-3,-4,-5,-9)]
+testdata <- test_features[,c(7:8,29:51,52,61,70,81,90,99)]
 
 #Results as numeric values
 trainclass <- (trainclass == "Home")*1 + (trainclass == "Away")*2
@@ -107,13 +164,10 @@ results[3,] <- (testclass == 2)*1
 
 names(traindata)
 #choose which features to be used as inputs to the model
-cols <- selected_columns
-cols <- c("distance","Odd_Open_odd1_Pinnacle", "Odd_Open_oddX_Pinnacle", "Odd_Open_odd2_Pinnacle", 
-          "Odd_Close_odd1_Pinnacle", "Odd_Close_odd2_Pinnacle", "Odd_Close_oddX_Pinnacle")
 
-#### Best results
-cols <-  c("Odd_Close_odd1_Pinnacle","Odd_Close_odd2_Pinnacle", "Odd_Close_oddX_Pinnacle")
-
+write.csv(cbind(names(traindata), c(1:ncol(traindata))))
+cols <- names(traindata)
+cols <- cols[c(13:24, 29:31)]
 
 
 #### Model 1 - Nearest Neighbor
@@ -121,10 +175,10 @@ cols <-  c("Odd_Close_odd1_Pinnacle","Odd_Close_odd2_Pinnacle", "Odd_Close_oddX_
 # Inputs are generated from data files
 train1 <- traindata[,..cols]
 test1 <- testdata[,..cols]
-
 #Inputs are scaled
 train1 <- scale(train1)
 test1 <- scale(test1)
+
 
 #knn model is constructed. k is determined arbitrarily, no cross validation
 pred11 <- knn(train1,test1, trainclass, k = 29, prob = TRUE)
@@ -146,17 +200,15 @@ pred <- KODAMA::knn.predict(1:nrow(train1), (nrow(train1)+1):nrow(x), trainclass
 # display the confusion matrix and accuracy
 confusion_matrix_knn_kodama <- table(pred,testclass)
 accuracy_knn_kodama <- sum(pred==testclass)/length(testclass)
-
+accuracy_knn_kodama
 # view probabilities (all class probabilities are returned)
 prob <- KODAMA::knn.probability(1:nrow(train1), (nrow(train1)+1):nrow(x), trainclass, kdist, k=29)
 
 # RPS Results are calculated
-rps1 <- RPS_single(prob, results)
+  rps1mat <- RPS_matrix(t(prob),t(results))
+rps1 <- mean(rps1mat)
 rps1
-
-
 #Output of RPS_Matrix function
-rps1mat <- RPS_matrix(t(prob),t(results))
 
 ########## End of Nearest Neighbor Analysis
 
@@ -184,35 +236,43 @@ accuracy_multinom <- sum(predicted_class == testclass)/length(testclass)
 accuracy_multinom
 
 ##  average RPS and RPS Matrix
-rps2 <- RPS_single(t(predicted_scores), results)
-
 rps2mat <- RPS_matrix(predicted_scores, t(results))
+rps2 <- mean(rps2mat)
 
+rps2
+
+test_features <- order
+k <- merge(test_features[,c("matchId","Match_Result", "Match_Date", "Odd_Close_odd1_bwin", "Odd_Close_odd2_bwin", "Odd_Close_oddX_bwin")], matches[,c("matchId", "Home", "Away")])
+l <- cbind(k, predicted_scores)
+l <- l[order(Match_Date)]
+write.csv(l)
 ####### End of Multinomial Logistic Regression Model
 
 ### Instructor's Benchmark Model
 
 # Input Data
-train3 <- traindata[,..cols]
-test3 <- testdata[,..cols]
+train3 <- traindata
+test3 <- testdata
 
 # Model is constructed
-sample_model <- train_glmnet(train_features,test_features)
+sample_model <- train_glmnet(train_features[,1:length(cols)],test_features[,1:length(cols)])
 
 sample_model
 
 
 #Model results as a matrix
 sample_mat <- results
-sample_mat[1,] <- t(sample_model$predictions[,4])
-sample_mat[2,] <- t(sample_model$predictions[,3])
-sample_mat[3,] <- t(sample_model$predictions[,5])
+sample_mat[,1] <- unlist(sample_model$predictions[,4])
+sample_mat[,2] <- unlist(sample_model$predictions[,3])
+sample_mat[,3] <- unlist(sample_model$predictions[,5])
 
 # average RPS and RPS Matrix
-rps3 <- RPS_single(sample_mat,results)
-rps3mat <- RPS_matrix(t(sample_mat),t(results))
 
-rps3
+
+rps3mat <- RPS_matrix(sample_mat,results)
+rps3 <- mean(rps3mat)
+
+
 #### End of Instructor's Model
 
 
@@ -237,12 +297,14 @@ boosting_probs <- t(match.predbegging$prob)
 
 
 # Average RPS and RPS Matrix
-rps4 <- RPS_single(boosting_probs,results)
-rps4
+
 
 rps4mat <- RPS_matrix(t(boosting_probs),t(results))
+rps4 <- mean(rps4mat)
 
 
 
-
-
+rps1
+rps2
+rps3
+rps4

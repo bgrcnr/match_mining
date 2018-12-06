@@ -47,7 +47,7 @@ testclass <- (testclass == "Home")*1 + (testclass == "Away")*2
 
 ##################################################################################################
 #####################DECISION TREE################################################################
-tree = rpart(trainclass~.,traindata,
+tree1 = rpart(trainclass~.,traindata,
               method='class',
               control=rpart.control(cp=0.001,maxdepth = 30))
 
@@ -58,7 +58,7 @@ plotcp(tree1) # visualize cross-validation results
 summary(tree1) # detailed summary of splits
 which.min(tree1$cptable) #cp with min cv error
 
-ptree1 = prune(tree1, cp=0.01) #prune to determined cp
+ptree1 = prune(tree1, cp=0.005) #prune to determined cp
 fancyRpartPlot(ptree1)
 
 probs = as.data.frame(predict(ptree1,testdata))
@@ -102,6 +102,7 @@ results1[,3] <- (testclass == 2)*1
 RPS2 = RPS_matrix(probs1,results1)
 RPS2 = mean(RPS2)
 RPS2 
+
 
 ##################################################################################################
 #####################RANDOM FOREST################################################################
