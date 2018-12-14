@@ -112,9 +112,9 @@ cbind(names(train_features), c(1:ncol(train_features)))
 
 #Seperate Results and Data, remove matchID, MatchDate and LeagueID columns
 trainclass <- train_features$Match_Result
-traindata <- train_features[,c(3:5,7,24:35,36,52,68,88,104,120)]
+traindata <- train_features[,c(3:5,7:35,36,53,70,96,113,130)]
 testclass <- test_features$Match_Result
-testdata <- test_features[,c(3:5,7,24:35,36,52,68,88,104,120)]
+testdata <- test_features[,c(3:5,7:35,36,53,70,96,113,130)]
 
 #Results as numeric values
 trainclass <- (trainclass == "Home")*1 + (trainclass == "Away")*2
@@ -132,7 +132,7 @@ names(traindata)
 cols <- names(traindata)
 
 cbind(names(traindata), c(1:ncol(traindata)))
-cols <- cols[c(5,8:18)]
+cols <- cols[c(21,24:32, 36:38)]
 
 
 #### Model 1 - Nearest Neighbor
