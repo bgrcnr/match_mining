@@ -5,7 +5,8 @@ match_processing <- function(data, avg_days)
   temp <- temp[order(matchId)]
   
   city_distances <- read.csv("city_distances.csv")
-  
+  elo_data <- as.data.table(read.csv("elo_data.csv"))
+  elo_data[,X:=NULL]
   # Calculating Day Before Match
   x <- temp[,c("matchId","Match_Date","Home","Away","Home_City",
                "Away_City", "Home_Score", "Away_Score", "Half Time Home Team Goals",
@@ -81,16 +82,19 @@ match_processing <- function(data, avg_days)
   x3$Avg_Foul_Diff <- as.numeric(rep(NA, nrow(x3)))
   x3$Avg_Corner_Diff <- as.numeric(rep(NA, nrow(x3)))
   
+  days <- (1:avg_days)/sum(1:avg_days)
+  
+  
   for(i in avg_days:(nrow(x3)))
   {
     if(x3[i-avg_days+1,]$Team == x3[i,]$Team)
     {
-      x3[i,]$Avg_Goal_Diff <- sum(x3[(i-avg_days+1):i,]$Goal_Diff)/avg_days
-      x3[i,]$Avg_HT_Goal_Diff <- sum(x3[(i-avg_days+1):i,]$HT_Goal_Diff)/avg_days
-      x3[i,]$Avg_Shot_Diff <- sum(x3[(i-avg_days+1):i,]$Shot_Diff)/avg_days
-      x3[i,]$Avg_SoT_Diff <- sum(x3[(i-avg_days+1):i,]$SoT_Diff)/avg_days
-      x3[i,]$Avg_Foul_Diff <- sum(x3[(i-avg_days+1):i,]$Foul_Diff)/avg_days
-      x3[i,]$Avg_Corner_Diff <- sum(x3[(i-avg_days+1):i,]$Corner_Diff)/avg_days
+      x3[i,]$Avg_Goal_Diff <- weighted.mean(x3[(i-avg_days+1):i,]$Goal_Diff,days)
+      x3[i,]$Avg_HT_Goal_Diff <- weighted.mean(x3[(i-avg_days+1):i,]$HT_Goal_Diff,days)
+      x3[i,]$Avg_Shot_Diff <- weighted.mean(x3[(i-avg_days+1):i,]$Shot_Diff,days)
+      x3[i,]$Avg_SoT_Diff <- weighted.mean(x3[(i-avg_days+1):i,]$SoT_Diff,days)
+      x3[i,]$Avg_Foul_Diff <- weighted.mean(x3[(i-avg_days+1):i,]$Foul_Diff,days)
+      x3[i,]$Avg_Corner_Diff <- weighted.mean(x3[(i-avg_days+1):i,]$Corner_Diff,days)
     }
   }
   
@@ -133,7 +137,33 @@ match_processing <- function(data, avg_days)
           "Home Team Shots","Away Team Shots" ,"Home Team Shots on Target","Away Team Shots on Target",
           "Home Team Fouls Committed", "Away Team Fouls Committed", "Home Team Corners", "Away Team Corners",
           "Home Team Yellow Cards",  "Away Team Yellow Cards",   "Home Team Red Cards", "Away Team Red Cards") := NULL]
+  x <- temp[,c("matchId","Home", "Away", "Match_Date")]
   
+  x$Match_Date <- as.Date(x$Match_Date)
+  elo_data$From <- as.Date(elo_data$From)
+  
+  x <- merge(x=x, y=elo_data, by.x = c("Home", "Match_Date"), by.y = c("Club", "From"), all.x=TRUE)
+  x$Home_ELO = x$Elo
+  x[,Elo := NULL]
+  
+  x <- merge(x=x, y=elo_data, by.x = c("Away", "Match_Date"), by.y = c("Club", "From"), all.x=TRUE)
+  x$Away_ELO = x$Elo
+  x[,Elo := NULL]
+  x <- x[order(matchId)]
+  temp$Home_ELO <- x$Home_ELO
+  temp$Away_ELO <- x$Away_ELO
+  
+  temp$Yellow_Diff <- temp$Home_Last_Yellow - temp$Away_Last_Yellow
+  temp$Red_Diff <- temp$Home_Last_Red - temp$Away_Last_Red
+  temp$Goal_Diff <- temp$Home_Avg_Goal_Diff - temp$Away_Avg_Goal_Diff
+  temp$HT_Goal_Diff <- temp$Home_Avg_HT_Goal_Diff - temp$Away_Avg_HT_Goal_Diff
+  temp$Corner_Diff <- temp$Home_Avg_Corner_Diff - temp$Away_Avg_Corner_Diff
+  temp$Foul_Diff <- temp$Home_Avg_Foul_Diff - temp$Away_Avg_Foul_Diff
+  temp$SoT_Diff <- temp$Home_Avg_SoT_Diff - temp$Away_Avg_SoT_Diff
+  temp$Shot_Diff <- temp$Home_Avg_Shot_Diff - temp$Away_Avg_Shot_Diff
+  temp$ELO_Diff <- temp$Home_ELO - temp$Away_ELO
+  
+  rm(x)
   gc()
   return(temp)
 }

@@ -91,7 +91,7 @@ comp_data <- merge(matches, additional_data, by.x = c("Match_Date", "Home", "Awa
 avg_days <- 7
 
 ## Add extra features to matches (winning average, score average, days before the match)
-matches <- match_processing(comp_data, avg_days)
+time <- system.time(matches <- match_processing(comp_data, avg_days))
 
 # preprocess odd data
 odd_details=details_data_preprocessing(odd_details_raw,matches,which_bets = c("1x2"))
@@ -112,9 +112,9 @@ cbind(names(train_features), c(1:ncol(train_features)))
 
 #Seperate Results and Data, remove matchID, MatchDate and LeagueID columns
 trainclass <- train_features$Match_Result
-traindata <- train_features[,c(3,4,5,7:24, 25, 41, 57, 87, 103, 119)]
+traindata <- train_features[,c(3:5,7,24:35,36,52,68,88,104,120)]
 testclass <- test_features$Match_Result
-testdata <- test_features[,c(3,4,5,7:24, 25, 41, 57, 87, 103, 119)]
+testdata <- test_features[,c(3:5,7,24:35,36,52,68,88,104,120)]
 
 #Results as numeric values
 trainclass <- (trainclass == "Home")*1 + (trainclass == "Away")*2
@@ -129,11 +129,10 @@ results[3,] <- (testclass == 2)*1
 names(traindata)
 #choose which features to be used as inputs to the model
 
-write.csv(cbind(names(traindata), c(1:ncol(traindata))))
 cols <- names(traindata)
 
 cbind(names(traindata), c(1:ncol(traindata)))
-cols <- cols[c(1:21,25:27)]
+cols <- cols[c(5,8:18)]
 
 
 #### Model 1 - Nearest Neighbor
@@ -142,8 +141,8 @@ cols <- cols[c(1:21,25:27)]
 train1 <- traindata[,..cols]
 test1 <- testdata[,..cols]
 #Inputs are scaled
-train1 <- scale(train1)
-test1 <- scale(test1)
+train1 <- as.data.table(scale(train1))
+test1 <- as.data.table(scale(test1))
 
 
 #knn model is constructed. k is determined arbitrarily, no cross validation
@@ -151,7 +150,7 @@ pred11 <- knn(train1,test1, trainclass, k = 29, prob = TRUE)
 
 #confusion matrix and accuracy
 confusion_matrix_knn <- table(pred11,testclass)
-acuracy_knn <- sum(pred11==testclass)/length(testclass)
+accuracy_knn <- sum(pred11==testclass)/length(testclass)
 
 
 # Bind train and test data to be used as an input in KODAMA's knn.dist function
@@ -188,6 +187,8 @@ rps1
 train2 <- traindata[,..cols]
 test2 <- testdata[,..cols]
 
+train2 <- as.data.table(scale(train2))
+test2 <- as.data.table(scale(test2))
 #Multinomial model requires results to be in the data
 train2$Match_Result <- trainclass
 test2$Match_Result <- testclass
@@ -260,6 +261,8 @@ cols <- cols[c(5,6,7,8,9,10,13,14,21:31)]
 #Inputs
 train4 <- traindata[,..cols]
 test4 <- testdata[,..cols]
+train4 <- as.data.table(scale(train4))
+test4 <- as.data.table(scale(test4))
 
 #Bagging Model requires results to be in input data
 train4$Match_Result <- as.factor(trainclass)
