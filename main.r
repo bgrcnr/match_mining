@@ -23,8 +23,8 @@ matches_data_path = "Files/df9b1196-e3cf-4cc7-9159-f236fe738215_matches.rds"
 odd_details_data_path = "Files/df9b1196-e3cf-4cc7-9159-f236fe738215_odd_details.rds"
 
 #train and test dates
-testStart=as.Date('2018-06-16')
-trainStart=as.Date('2012-09-15')
+testStart=as.Date('2018-04-16')
+trainStart=as.Date('2013-09-15')
 rem_miss_threshold=0.01 #parameter for removing bookmaker odds with missing ratio greater than this threshold
 
 
@@ -88,23 +88,10 @@ colnames(additional_data) <- col_names
 
 
 comp_data <- merge(matches, additional_data, by.x = c("Match_Date", "Home", "Away"), by.y  = c("Date", "Home", "Away"), all.x = TRUE)
-avg_days <- 3
+avg_days <- 7
 
 ## Add extra features to matches (winning average, score average, days before the match)
 matches <- match_processing(comp_data, avg_days)
-
-
-### distances
-#x is a dummy variable to protect the type of matches data 
-x <- matches[,c("Home_City","Away_City")]
-x$city_combo <- paste(matches$Home_City,matches$Away_City,sep="-")
-city_distances <- as.data.table(city_distances)
-city_distances <- unique(city_distances)
-city_distances$city_combo <- paste(city_distances$city_1,city_distances$city_2,sep="-")
-x <- merge(x, city_distances[,c("city_combo","distance")], by= "city_combo")
-matches$distance <- x$distance
-rm(x)
-###
 
 # preprocess odd data
 odd_details=details_data_preprocessing(odd_details_raw,matches,which_bets = c("1x2"))
@@ -120,38 +107,14 @@ test_features=features[Match_Date>=testStart]
 train_features <- train_features[complete.cases(train_features)]
 test_features <- test_features[complete.cases(test_features)]
 
-###### PCA ANALYSIS ######
-all_data <- rbind(train_features,test_features)
-cbind(names(all_data), c(1:ncol(all_data)), sapply(all_data,class))
-all_data <- all_data[,c(-1,-2,-3,-4,-5,-9,-12,-15, -16)]
-all_data <- scale(all_data)
-pca <- princomp(all_data)
-plot(pca)
-summary(pca)
-pca_results <- pca$loadings[,1:2]
-
-selected_columns <- c("Match_Hour","Home_Day","Away_Day","Home_Goal_Avg","Away_Goal_Avg","Home_Win_Avg","Away_Win_Avg",
-                      "Home_Tie_Avg","Away_Tie_Avg","distance","Match_Day","Odd_Open_odd1_Pinnacle", "Odd_Open_oddX_Pinnacle", "Odd_Open_odd2_Pinnacle", 
-                              "Odd_Close_odd1_Pinnacle", "Odd_Close_odd2_Pinnacle", "Odd_Close_oddX_Pinnacle")
-
-all_data <- all_data[,selected_columns]
-
-all_data <- scale(all_data)
-
-pca <- princomp(all_data)
-
-plot(pca)
-summary(pca)
-pca_results <- pca$loadings[,1:7]
-###### PCA ANALYSIS ######
 
 cbind(names(train_features), c(1:ncol(train_features)))
 
 #Seperate Results and Data, remove matchID, MatchDate and LeagueID columns
 trainclass <- train_features$Match_Result
-traindata <- train_features[,c(7:8,29:51,52,67,82,101,116,131)]
+traindata <- train_features[,c(3,4,5,7:24, 25, 41, 57, 87, 103, 119)]
 testclass <- test_features$Match_Result
-testdata <- test_features[,c(7:8,29:51,52,67,82,101,116,131)]
+testdata <- test_features[,c(3,4,5,7:24, 25, 41, 57, 87, 103, 119)]
 
 #Results as numeric values
 trainclass <- (trainclass == "Home")*1 + (trainclass == "Away")*2
@@ -168,7 +131,9 @@ names(traindata)
 
 write.csv(cbind(names(traindata), c(1:ncol(traindata))))
 cols <- names(traindata)
-cols <- cols[c(15:18,25:31)]
+
+cbind(names(traindata), c(1:ncol(traindata)))
+cols <- cols[c(1:21,25:27)]
 
 
 #### Model 1 - Nearest Neighbor
