@@ -23,7 +23,7 @@ matches_data_path = "Files/df9b1196-e3cf-4cc7-9159-f236fe738215_matches.rds"
 odd_details_data_path = "Files/df9b1196-e3cf-4cc7-9159-f236fe738215_odd_details.rds"
 
 #train and test dates
-testStart=as.Date('2018-08-16')
+testStart=as.Date('2018-06-16')
 trainStart=as.Date('2012-09-15')
 rem_miss_threshold=0.01 #parameter for removing bookmaker odds with missing ratio greater than this threshold
 
@@ -47,7 +47,7 @@ odd_details_raw=readRDS(odd_details_data_path)
 #matched datapreprocessing function is edited, it adds unixdate and weekday columns
 
 matches=matches_data_preprocessing(matches_raw)
-k <- matches_data_preprocessing(matches_raw)
+
 
 
 additional_data <- rbind(s_2010[,1:23],s_2011[,1:23],s_2012[,1:23],s_2013[,1:23],s_2014[,1:23]
@@ -88,10 +88,10 @@ colnames(additional_data) <- col_names
 
 
 comp_data <- merge(matches, additional_data, by.x = c("Match_Date", "Home", "Away"), by.y  = c("Date", "Home", "Away"), all.x = TRUE)
-
+avg_days <- 3
 
 ## Add extra features to matches (winning average, score average, days before the match)
-matches <- match_processing(comp_data)
+matches <- match_processing(comp_data, avg_days)
 
 
 ### distances
@@ -122,7 +122,8 @@ test_features <- test_features[complete.cases(test_features)]
 
 ###### PCA ANALYSIS ######
 all_data <- rbind(train_features,test_features)
-all_data <- all_data[,c(-1,-2,-3,-4,-5,-9)]
+cbind(names(all_data), c(1:ncol(all_data)), sapply(all_data,class))
+all_data <- all_data[,c(-1,-2,-3,-4,-5,-9,-12,-15, -16)]
 all_data <- scale(all_data)
 pca <- princomp(all_data)
 plot(pca)
@@ -148,9 +149,9 @@ cbind(names(train_features), c(1:ncol(train_features)))
 
 #Seperate Results and Data, remove matchID, MatchDate and LeagueID columns
 trainclass <- train_features$Match_Result
-traindata <- train_features[,c(7:8,29:51,52,61,70,81,90,99)]
+traindata <- train_features[,c(7:8,29:51,52,67,82,101,116,131)]
 testclass <- test_features$Match_Result
-testdata <- test_features[,c(7:8,29:51,52,61,70,81,90,99)]
+testdata <- test_features[,c(7:8,29:51,52,67,82,101,116,131)]
 
 #Results as numeric values
 trainclass <- (trainclass == "Home")*1 + (trainclass == "Away")*2
@@ -158,8 +159,8 @@ testclass <- (testclass == "Home")*1 + (testclass == "Away")*2
 
 #Matrix of Results to be used as an input to the RPS function
 results <- matrix(1:(length(testclass)*3), 3)
-results[1,] <- (testclass == 0)*1
-results[2,] <- (testclass == 1)*1
+results[1,] <- (testclass == 1)*1
+results[2,] <- (testclass == 0)*1
 results[3,] <- (testclass == 2)*1
 
 names(traindata)
@@ -167,7 +168,7 @@ names(traindata)
 
 write.csv(cbind(names(traindata), c(1:ncol(traindata))))
 cols <- names(traindata)
-cols <- cols[c(13:24, 29:31)]
+cols <- cols[c(15:18,25:31)]
 
 
 #### Model 1 - Nearest Neighbor
@@ -204,8 +205,12 @@ accuracy_knn_kodama
 # view probabilities (all class probabilities are returned)
 prob <- KODAMA::knn.probability(1:nrow(train1), (nrow(train1)+1):nrow(x), trainclass, kdist, k=29)
 
+prob_rearranged <- prob
+prob_rearranged[1,] <- prob[2,]
+prob_rearranged[2,] <- prob[1,]
+
 # RPS Results are calculated
-  rps1mat <- RPS_matrix(t(prob),t(results))
+  rps1mat <- RPS_matrix(t(prob_rearranged),t(results))
 rps1 <- mean(rps1mat)
 rps1
 #Output of RPS_Matrix function
@@ -235,16 +240,23 @@ confusion_matrix_multinom <- table(predicted_class, testclass)
 accuracy_multinom <- sum(predicted_class == testclass)/length(testclass)
 accuracy_multinom
 
-##  average RPS and RPS Matrix
-rps2mat <- RPS_matrix(predicted_scores, t(results))
-rps2 <- mean(rps2mat)
+prob_rearranged <- predicted_scores
+prob_rearranged[,1] <- predicted_scores[,2]
+prob_rearranged[,2] <- predicted_scores[,1]
 
+
+##  average RPS and RPS Matrix
+rps2mat <- RPS_matrix(prob_rearranged, t(results))
+rps2 <- mean(rps2mat)
 rps2
 
-test_features <- order
-k <- merge(test_features[,c("matchId","Match_Result", "Match_Date", "Odd_Close_odd1_bwin", "Odd_Close_odd2_bwin", "Odd_Close_oddX_bwin")], matches[,c("matchId", "Home", "Away")])
+
+### results
+k <- merge(test_features[,c("matchId","Match_Result", "Unix_Date", "Odd_Close_odd1_bwin", "Odd_Close_odd2_bwin", "Odd_Close_oddX_bwin")],
+           matches[,c("matchId", "Home", "Away")], by = "matchId", all.x = TRUE)
 l <- cbind(k, predicted_scores)
-l <- l[order(Match_Date)]
+l <- l[order(Unix_Date)]
+
 write.csv(l)
 ####### End of Multinomial Logistic Regression Model
 
@@ -277,6 +289,8 @@ rps3 <- mean(rps3mat)
 
 
 #### Boosting, Bagging
+cols <- names(traindata)
+cols <- cols[c(5,6,7,8,9,10,13,14,21:31)]
 
 #Inputs
 train4 <- traindata[,..cols]
@@ -298,10 +312,28 @@ boosting_probs <- t(match.predbegging$prob)
 
 # Average RPS and RPS Matrix
 
+prob_rearranged <- boosting_probs
+prob_rearranged[1,] <- boosting_probs[2,]
+prob_rearranged[2,] <- boosting_probs[1,]
 
-rps4mat <- RPS_matrix(t(boosting_probs),t(results))
+rps4mat <- RPS_matrix(t(prob_rearranged),t(results))
 rps4 <- mean(rps4mat)
+rps4
 
+############# SVM
+train5 <- traindata[,..cols]
+test5 <- testdata[,..cols]
+train5$Match_Result <- as.factor(trainclass)
+test5$Match_Result <- as.factor(testclass)
+
+
+svm_fit <- svm(Match_Result~., data = train5, probability = TRUE)
+probs <- predict(svm_fit, test5, devision.values = TRUE, probability = TRUE)
+probs
+probs[10]
+prob_rearranged <- probs
+prob_rearranged[,1] <- probs[,3]
+prob_rearranged[,2] <- probs[,1]
 
 
 rps1

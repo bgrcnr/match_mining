@@ -1,4 +1,4 @@
-match_processing <- function(data)
+match_processing <- function(data, avg_days)
 {
   
 temp <- copy(data)
@@ -56,9 +56,9 @@ x3 <- rbind(x1,x2)
 x3 <- x3[order(Team, Date)]
 x3$avg_score <- as.numeric(x3$Score)
 
-for(i in 5:(nrow(x3)))
+for(i in avg_days:(nrow(x3)))
 {
-  x3[i,]$avg_score <- sum(x3[(i-4):i,]$Score)*(x3[i-4,]$Team == x3[i,]$Team)/5
+  x3[i,]$avg_score <- sum(x3[(i-avg_days+1):i,]$Score)*(x3[i-avg_days+1,]$Team == x3[i,]$Team)/5
 }
 
 x3$Last_Average <- x3$avg_score
@@ -97,9 +97,9 @@ x3 <- x3[order(Team, Date)]
 
 x3$avg_winning <- as.numeric(x3$Win_Lose)
 
-for(i in 5:(nrow(x3)))
+for(i in avg_days:(nrow(x3)))
 {
-  x3[i,]$avg_winning <- sum(x3[(i-4):i,]$Win_Lose)*(x3[i-4,]$Team == x3[i,]$Team)/5
+  x3[i,]$avg_winning <- sum(x3[(i-avg_days+1):i,]$Win_Lose)*(x3[i-avg_days+1,]$Team == x3[i,]$Team)/5
 }
 
 for(i in 1:(nrow(x3)))
@@ -145,9 +145,9 @@ x3 <- x3[order(Team, Date)]
 
 x3$avg_tie <- as.numeric(x3$Tie)
 
-for(i in 5:(nrow(x3)))
+for(i in avg_days:(nrow(x3)))
 {
-  x3[i,]$avg_tie <- sum(x3[(i-4):i,]$Tie)*(x3[i-4,]$Team == x3[i,]$Team)/5
+  x3[i,]$avg_tie <- sum(x3[(i-avg_days+1):i,]$Tie)*(x3[i-avg_days+1,]$Team == x3[i,]$Team)/5
 }
 
 for(i in 1:(nrow(x3)))
@@ -192,9 +192,9 @@ x3 <- rbind(x1,x2)
 x3 <- x3[order(Team, Date)]
 x3$avg_score <- as.numeric(x3$Score)
 
-for(i in 5:(nrow(x3)))
+for(i in avg_days:(nrow(x3)))
 {
-  x3[i,]$avg_score <- sum(x3[(i-4):i,]$Score)*(x3[i-4,]$Team == x3[i,]$Team)/5
+  x3[i,]$avg_score <- sum(x3[(i-avg_days+1):i,]$Score)*(x3[i-avg_days+1,]$Team == x3[i,]$Team)/5
 }
 
 x3$Last_Average <- x3$avg_score
@@ -234,9 +234,9 @@ x3 <- x3[order(Team, Date)]
 
 x3$avg_winning <- as.numeric(x3$Win_Lose)
 
-for(i in 5:(nrow(x3)))
+for(i in avg_days:(nrow(x3)))
 {
-  x3[i,]$avg_winning <- sum(x3[(i-4):i,]$Win_Lose)*(x3[i-4,]$Team == x3[i,]$Team)/5
+  x3[i,]$avg_winning <- sum(x3[(i-avg_days+1):i,]$Win_Lose)*(x3[i-avg_days+1,]$Team == x3[i,]$Team)/5
 }
 
 for(i in 1:(nrow(x3)))
@@ -282,9 +282,9 @@ x3 <- x3[order(Team, Date)]
 
 x3$avg_winning <- as.numeric(x3$Win_Lose)
 
-for(i in 5:(nrow(x3)))
+for(i in avg_days:(nrow(x3)))
 {
-  x3[i,]$avg_winning <- sum(x3[(i-4):i,]$Win_Lose)*(x3[i-4,]$Team == x3[i,]$Team)/5
+  x3[i,]$avg_winning <- sum(x3[(i-avg_days+1):i,]$Win_Lose)*(x3[i-avg_days+1,]$Team == x3[i,]$Team)/5
 }
 
 for(i in 1:(nrow(x3)))
@@ -331,9 +331,9 @@ x3 <- x3[order(Team, Date)]
 
 x3$avg_winning <- as.numeric(x3$Win_Lose)
 
-for(i in 5:(nrow(x3)))
+for(i in avg_days:(nrow(x3)))
 {
-  x3[i,]$avg_winning <- sum(x3[(i-4):i,]$Win_Lose)*(x3[i-4,]$Team == x3[i,]$Team)/5
+  x3[i,]$avg_winning <- sum(x3[(i-avg_days+1):i,]$Win_Lose)*(x3[i-avg_days+1,]$Team == x3[i,]$Team)/5
 }
 
 for(i in 1:(nrow(x3)))
@@ -380,9 +380,9 @@ x3 <- x3[order(Team, Date)]
 
 x3$avg_winning <- as.numeric(x3$Win_Lose)
 
-for(i in 5:(nrow(x3)))
+for(i in avg_days:(nrow(x3)))
 {
-  x3[i,]$avg_winning <- sum(x3[(i-4):i,]$Win_Lose)*(x3[i-4,]$Team == x3[i,]$Team)/5
+  x3[i,]$avg_winning <- sum(x3[(i-avg_days+1):i,]$Win_Lose)*(x3[i-avg_days+1,]$Team == x3[i,]$Team)/5
 }
 
 for(i in 1:(nrow(x3)))
