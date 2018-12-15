@@ -88,7 +88,8 @@ colnames(additional_data) <- col_names
 
 
 comp_data <- merge(matches, additional_data, by.x = c("Match_Date", "Home", "Away"), by.y  = c("Date", "Home", "Away"), all.x = TRUE)
-avg_days <- 7
+avg_days <- 5
+
 
 ## Add extra features to matches (winning average, score average, days before the match)
 time <- system.time(matches <- match_processing(comp_data, avg_days))
@@ -112,9 +113,9 @@ cbind(names(train_features), c(1:ncol(train_features)))
 
 #Seperate Results and Data, remove matchID, MatchDate and LeagueID columns
 trainclass <- train_features$Match_Result
-traindata <- train_features[,c(3:5,7:35,36,53,70,96,113,130)]
+traindata <- train_features[,c(3:5,7:35,36,53,70,94,111,128)]
 testclass <- test_features$Match_Result
-testdata <- test_features[,c(3:5,7:35,36,53,70,96,113,130)]
+testdata <- test_features[,c(3:5,7:35,36,53,70,94,111,128)]
 
 #Results as numeric values
 trainclass <- (trainclass == "Home")*1 + (trainclass == "Away")*2
@@ -132,7 +133,7 @@ names(traindata)
 cols <- names(traindata)
 
 cbind(names(traindata), c(1:ncol(traindata)))
-cols <- cols[c(21,24:32, 36:38)]
+cols <- cols[c(21:31,33:38)]
 
 
 #### Model 1 - Nearest Neighbor
@@ -217,47 +218,6 @@ rps2 <- mean(rps2mat)
 rps2
 
 
-### results
-k <- merge(test_features[,c("matchId","Match_Result", "Unix_Date", "Odd_Close_odd1_bwin", "Odd_Close_odd2_bwin", "Odd_Close_oddX_bwin")],
-           matches[,c("matchId", "Home", "Away")], by = "matchId", all.x = TRUE)
-l <- cbind(k, predicted_scores)
-l <- l[order(Unix_Date)]
-
-write.csv(l)
-####### End of Multinomial Logistic Regression Model
-
-### Instructor's Benchmark Model
-
-# Input Data
-train3 <- traindata
-test3 <- testdata
-
-# Model is constructed
-sample_model <- train_glmnet(train_features[,1:length(cols)],test_features[,1:length(cols)])
-
-sample_model
-
-
-#Model results as a matrix
-sample_mat <- results
-sample_mat[,1] <- unlist(sample_model$predictions[,4])
-sample_mat[,2] <- unlist(sample_model$predictions[,3])
-sample_mat[,3] <- unlist(sample_model$predictions[,5])
-
-# average RPS and RPS Matrix
-
-
-rps3mat <- RPS_matrix(sample_mat,results)
-rps3 <- mean(rps3mat)
-
-
-#### End of Instructor's Model
-
-
-#### Boosting, Bagging
-cols <- names(traindata)
-cols <- cols[c(5,6,7,8,9,10,13,14,21:31)]
-
 #Inputs
 train4 <- traindata[,..cols]
 test4 <- testdata[,..cols]
@@ -288,23 +248,3 @@ rps4mat <- RPS_matrix(t(prob_rearranged),t(results))
 rps4 <- mean(rps4mat)
 rps4
 
-############# SVM
-train5 <- traindata[,..cols]
-test5 <- testdata[,..cols]
-train5$Match_Result <- as.factor(trainclass)
-test5$Match_Result <- as.factor(testclass)
-
-
-svm_fit <- svm(Match_Result~., data = train5, probability = TRUE)
-probs <- predict(svm_fit, test5, devision.values = TRUE, probability = TRUE)
-probs
-probs[10]
-prob_rearranged <- probs
-prob_rearranged[,1] <- probs[,3]
-prob_rearranged[,2] <- probs[,1]
-
-
-rps1
-rps2
-rps3
-rps4

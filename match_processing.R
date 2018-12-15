@@ -85,16 +85,16 @@ match_processing <- function(data, avg_days)
   days <- (1:avg_days)/sum(1:avg_days)
   
   
-  for(i in avg_days:(nrow(x3)))
+  for(i in (avg_days+1):(nrow(x3)))
   {
-    if(x3[i-avg_days+1,]$Team == x3[i,]$Team)
+    if(x3[i-avg_days,]$Team == x3[i,]$Team)
     {
-      x3[i,]$Avg_Goal_Diff <- weighted.mean(x3[(i-avg_days+1):i,]$Goal_Diff,days)
-      x3[i,]$Avg_HT_Goal_Diff <- weighted.mean(x3[(i-avg_days+1):i,]$HT_Goal_Diff,days)
-      x3[i,]$Avg_Shot_Diff <- weighted.mean(x3[(i-avg_days+1):i,]$Shot_Diff,days)
-      x3[i,]$Avg_SoT_Diff <- weighted.mean(x3[(i-avg_days+1):i,]$SoT_Diff,days)
-      x3[i,]$Avg_Foul_Diff <- weighted.mean(x3[(i-avg_days+1):i,]$Foul_Diff,days)
-      x3[i,]$Avg_Corner_Diff <- weighted.mean(x3[(i-avg_days+1):i,]$Corner_Diff,days)
+      x3[i,]$Avg_Goal_Diff <- weighted.mean(x3[(i-avg_days):(i-1),]$Goal_Diff,days)
+      x3[i,]$Avg_HT_Goal_Diff <- weighted.mean(x3[(i-avg_days):(i-1),]$HT_Goal_Diff,days)
+      x3[i,]$Avg_Shot_Diff <- weighted.mean(x3[(i-avg_days):(i-1),]$Shot_Diff,days)
+      x3[i,]$Avg_SoT_Diff <- weighted.mean(x3[(i-avg_days):(i-1),]$SoT_Diff,days)
+      x3[i,]$Avg_Foul_Diff <- weighted.mean(x3[(i-avg_days):(i-1),]$Foul_Diff,days)
+      x3[i,]$Avg_Corner_Diff <- weighted.mean(x3[(i-avg_days):(i-1),]$Corner_Diff,days)
     }
   }
   
