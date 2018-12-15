@@ -10,6 +10,7 @@ require(lubridate)
 require(devtools)
 require(nnet)
 library(adabag)
+require(pracma)
 
 source('data_preprocessing.r')
 source('feature_extraction.r')
@@ -113,9 +114,9 @@ cbind(names(train_features), c(1:ncol(train_features)))
 
 #Seperate Results and Data, remove matchID, MatchDate and LeagueID columns
 trainclass <- train_features$Match_Result
-traindata <- train_features[,c(3:5,7:35,36,53,70,94,111,128)]
+traindata <- train_features[,c(3:5,7:42,43,60,77,95,112,129)]
 testclass <- test_features$Match_Result
-testdata <- test_features[,c(3:5,7:35,36,53,70,94,111,128)]
+testdata <- test_features[,c(3:5,7:42,43,60,77,95,112,129)]
 
 #Results as numeric values
 trainclass <- (trainclass == "Home")*1 + (trainclass == "Away")*2
@@ -129,14 +130,21 @@ results[3,] <- (testclass == 2)*1
 
 names(traindata)
 #choose which features to be used as inputs to the model
+### pca
+pcadata <- as.data.table(scale(traindata))
+pca <- princomp(pcadata)
+summary(pca)
+
+
+write.csv(pca$loadings, file = "C:/Users/Bugra/Documents/GitHub/match_mining/pca.csv")
 
 cols <- names(traindata)
 
 cbind(names(traindata), c(1:ncol(traindata)))
-cols <- cols[c(21:31,33:38)]
-
+cols <- cols[c(9,10,11,13,14,16,38,27,28,30,39,40,41,43,44)]
 
 #### Model 1 - Nearest Neighbor
+
 
 # Inputs are generated from data files
 train1 <- traindata[,..cols]
