@@ -11,6 +11,11 @@ require(devtools)
 require(nnet)
 library(adabag)
 require(pracma)
+require(gbm)
+require(xgboost)
+require(e1071)
+require(Ckmeans.1d.dp)
+
 
 source('data_preprocessing.r')
 source('feature_extraction.r')
@@ -89,11 +94,14 @@ colnames(additional_data) <- col_names
 
 
 comp_data <- merge(matches, additional_data, by.x = c("Match_Date", "Home", "Away"), by.y  = c("Date", "Home", "Away"), all.x = TRUE)
-avg_days <- 5
+avg_days <- 3
+avg_method <- "w"
+
+
 
 
 ## Add extra features to matches (winning average, score average, days before the match)
-time <- system.time(matches <- match_processing(comp_data, avg_days))
+time <- system.time(matches <- match_processing(comp_data, avg_days, avg_method) )
 
 # preprocess odd data
 odd_details=details_data_preprocessing(odd_details_raw,matches,which_bets = c("1x2"))
@@ -128,23 +136,11 @@ results[1,] <- (testclass == 1)*1
 results[2,] <- (testclass == 0)*1
 results[3,] <- (testclass == 2)*1
 
-names(traindata)
-#choose which features to be used as inputs to the model
-### pca
-pcadata <- as.data.table(scale(traindata))
-pca <- princomp(pcadata)
-summary(pca)
-
-
-write.csv(pca$loadings, file = "C:/Users/Bugra/Documents/GitHub/match_mining/pca.csv")
 
 cols <- names(traindata)
 
 cbind(names(traindata), c(1:ncol(traindata)))
-cols <- cols[c(9,10,11,13,14,16,38,27,28,30,39,40,41,43,44)]
-
-#### Model 1 - Nearest Neighbor
-
+cols <- cols[c(9:45)]
 
 # Inputs are generated from data files
 train1 <- traindata[,..cols]
@@ -187,6 +183,7 @@ prob_rearranged[2,] <- prob[1,]
 rps1 <- mean(rps1mat)
 rps1
 #Output of RPS_Matrix function
+
 
 ########## End of Nearest Neighbor Analysis
 
@@ -237,7 +234,7 @@ train4$Match_Result <- as.factor(trainclass)
 test4$Match_Result <- as.factor(testclass)
 
 #Model is generated
-match.bagging <- bagging(Match_Result ~ ., data = train4, boos = TRUE, mfinal = 10, control = (minsplit = 0))
+match.bagging <- bagging(Match_Result ~ ., data = train4)
 
 #Predictions are made
 match.predbegging <- predict.bagging(match.bagging, newdata = test4)
@@ -256,3 +253,178 @@ rps4mat <- RPS_matrix(t(prob_rearranged),t(results))
 rps4 <- mean(rps4mat)
 rps4
 
+### tree
+require(rpart)
+
+cols <- names(traindata)
+
+cbind(names(traindata), c(1:ncol(traindata)))
+cols <- cols[c(1:37)]
+
+
+
+train5 <- traindata[,..cols]
+test5 <- testdata[,..cols]
+train5 <- as.data.table(scale(train5))
+test5 <- as.data.table(scale(test5))
+test5class <- test_features$Match_Result
+train5 <- cbind(train_features$Match_Result
+,train5)
+colnames(train5)[1] <- "Match_Class"
+
+
+tree.match <- rpart(Match_Class~., train5)
+tree.pred <- predict(tree.match, test5, type = "class")
+table(tree.pred,test5class)
+
+sum(tree.pred==test5class)/nrow(test5)
+
+cv_results <- as.data.table(xpred.rpart(tree.match))
+
+printcp(tree.match)
+plotcp(tree.match)
+which.min(tree.match$cptable)
+
+tree.prune <- prune(tree.match, cp = 0.01)
+tree_probs <- as.data.table(predict(tree.prune, test5))
+
+tprobs <- t(tree_probs)
+tprobs[1,] <- t(tree_probs[,2])
+tprobs[2,] <- t(tree_probs[,3])
+tprobs[3,] <- t(tree_probs[,1])
+
+tprobs <- t(tprobs)
+
+rps5 <- RPS_matrix(tprobs,t(results))
+rps5 <- mean(rps5)
+rps5
+
+
+library(randomForest)
+train5 <- traindata[,..cols]
+test5 <- testdata[,..cols]
+train5 <- as.data.table(scale(train5))
+test5 <- as.data.table(scale(test5))
+train5class <- as.factor(train_features$Match_Result)
+
+rf_matches <- randomForest(train5, y = train5class, ntree = 1000, proximity = TRUE)
+prob_classes <- predict(rf_matches, test5)
+table(prob_classes, test5class)
+sum(tree.pred==test5class)/nrow(test5)
+
+probs_rf <- predict(rf_matches,test5, type = "prob")
+
+probs5 <- probs_rf
+probs5[,1] <- probs_rf[,2]
+probs5[,2] <- probs_rf[,3]
+probs5[,3] <- probs_rf[,1]
+
+importance(rf_matches)
+
+rps6 <- RPS_matrix(probs5, t(results))
+rps6 <- mean(rps6)
+rps6
+
+########boosting
+
+train5 <- traindata[,..cols]
+test5 <- testdata[,..cols]
+train5 <- as.matrix(scale(train5))
+test5 <- as.matrix(scale(test5))
+trainlabel <- as.matrix(trainclass)
+testlabel <- as.matrix(testclass)
+
+train_matrix <- xgb.DMatrix(data = train5, label = trainlabel)
+test_matrix <- xgb.DMatrix(data = test5, label = testlabel)
+
+numberOfClasses <- length(unique(testlabel))
+xgb_params <- list("objective" = "multi:softprob",
+                   "eval_metric" = "mlogloss",
+                   "num_class" = numberOfClasses)
+nround    <- 50 # number of XGBoost rounds
+cv.nfold  <- 5
+
+# Fit cv.nfold * cv.nround XGB models and save OOF predictions
+cv_model <- xgb.cv(params = xgb_params,
+                   data = train_matrix, 
+                   nrounds = nround,
+                   nfold = cv.nfold,
+                   verbose = FALSE,
+                   prediction = TRUE)
+cv_model$pred
+require(dplyr)
+OOF_prediction <- data.frame(cv_model$pred) %>%
+  mutate(max_prob = max.col(., ties.method = "last"),
+         label = trainlabel + 1)
+head(OOF_prediction)
+
+confusionMatrix(factor(OOF_prediction$max_prob),
+                factor(OOF_prediction$label),
+                mode = "everything")
+
+bst_model <- xgb.train(params = xgb_params,
+                       data = train_matrix,
+                       nrounds = nround)
+
+# Predict hold-out test set
+test_pred <- predict(bst_model, newdata = test_matrix)
+test_prediction <- matrix(test_pred, nrow = numberOfClasses,
+                          ncol=length(test_pred)/numberOfClasses) %>%
+  t() %>%
+  data.frame() %>%
+  mutate(label = testlabel + 1,
+         max_prob = max.col(., "last"))
+
+probs_boost <- test_prediction[,1:3]
+probs_boost[,1] <- test_prediction[,2]
+probs_boost[,2] <- test_prediction[,1]
+probs_boost[,3] <- test_prediction[,3]
+
+rps7 <- RPS_matrix(probs_boost, t(results))
+rps7 <- mean(rps7)
+rps7
+
+
+# confusion matrix of test set
+confusionMatrix(factor(test_prediction$max_prob),
+                factor(test_prediction$label),
+                mode = "everything")
+
+names <-  colnames(train5)
+# compute feature importance matrix
+importance_matrix = xgb.importance(feature_names = names, model = bst_model)
+head(importance_matrix)
+
+####### support vector machines 
+
+
+train6 <- traindata[,..cols]
+test6 <- testdata[,..cols]
+trainlabel <- as.factor(trainlabel)
+testlabel <- as.factor(testlabel)
+
+train6 <- data.frame(train6,trainlabel)
+
+tune.out <- tune(svm, trainlabel~., data = train6, kernel = "radial", 
+                 ranges = list(cost=c(0.001 , 0.01, 0.1, 1,5,10,100)))
+
+svmfit <- svm(trainlabel~., data = train6, kernel = "radial", cost = 0.1, scale = TRUE, prob = TRUE)
+
+bestsvm <- tune.out$best.model
+
+svmpred <- predict(bestsvm, test6)
+table(svmpred,testlabel)
+sum(svmpred==testlabel)/nrow(test6)
+
+svmprob <- predict(svmfit, test6, probability = TRUE)
+attributes(svmprob)$probabilities
+
+
+probsvm1 <- attributes(svmprob)$probabilities
+probsvm <- probsvm1
+probsvm[,1] <- probsvm1[,3]
+probsvm[,3] <- probsvm1[,1]
+
+rps8 <- RPS_matrix(probsvm, t(results))
+rps8 <- mean(rps8)
+rps8
