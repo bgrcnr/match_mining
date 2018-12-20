@@ -1,4 +1,4 @@
-match_processing <- function(data, avg_days)
+match_processing <- function(data, avg_days, avg_method)
 {
   temp <- copy(data)
   
@@ -92,23 +92,23 @@ match_processing <- function(data, avg_days)
   x3$Avg_Corner_Diff <- as.numeric(rep(NA, nrow(x3)))
   
  
-  x3$Avg_Goal_Scored <- movavg(x3$Goals_Scored ,avg_days,"w")
-  x3$Avg_HT_Goal_Scored <- movavg(x3$HT_Goals_Scored ,avg_days,"w")
-  x3$Avg_Win <- movavg(x3$Win ,avg_days,"w")
-  x3$Avg_Tie <- movavg(x3$Tie ,avg_days,"w")
-  x3$Avg_Shots_Made <- movavg(x3$Shots_Made ,avg_days,"w")
-  x3$Avg_SoT_Made <- movavg(x3$SoT_Made ,avg_days,"w")
-  x3$Avg_Fouls_Committed <- movavg(x3$Fouls_Committed ,avg_days,"w")
-  x3$Avg_Corners <- movavg(x3$Corners_Given ,avg_days,"w")
-  x3$Avg_Goal_Diff <- movavg(x3$Goal_Diff,avg_days,"w")
-  x3$Avg_HT_Goal_Diff <- movavg(x3$HT_Goal_Diff,avg_days,"w")
-  x3$Avg_Shot_Diff <- movavg(x3$Shot_Diff,avg_days,"w")
-  x3$Avg_SoT_Diff <- movavg(x3$SoT_Diff,avg_days,"w")
-  x3$Avg_Foul_Diff <- movavg(x3$Foul_Diff,avg_days,"w")
-  x3$Avg_Corner_Diff <- movavg(x3$Corner_Diff,avg_days,"w")
+  x3$Avg_Goal_Scored <- movavg(x3$Goals_Scored ,avg_days,avg_method)
+  x3$Avg_HT_Goal_Scored <- movavg(x3$HT_Goals_Scored ,avg_days,avg_method)
+  x3$Avg_Win <- movavg(x3$Win ,avg_days,avg_method)
+  x3$Avg_Tie <- movavg(x3$Tie ,avg_days,avg_method)
+  x3$Avg_Shots_Made <- movavg(x3$Shots_Made ,avg_days,avg_method)
+  x3$Avg_SoT_Made <- movavg(x3$SoT_Made ,avg_days,avg_method)
+  x3$Avg_Fouls_Committed <- movavg(x3$Fouls_Committed ,avg_days,avg_method)
+  x3$Avg_Corners <- movavg(x3$Corners_Given ,avg_days,avg_method)
+  x3$Avg_Goal_Diff <- movavg(x3$Goal_Diff,avg_days,avg_method)
+  x3$Avg_HT_Goal_Diff <- movavg(x3$HT_Goal_Diff,avg_days,avg_method)
+  x3$Avg_Shot_Diff <- movavg(x3$Shot_Diff,avg_days,avg_method)
+  x3$Avg_SoT_Diff <- movavg(x3$SoT_Diff,avg_days,avg_method)
+  x3$Avg_Foul_Diff <- movavg(x3$Foul_Diff,avg_days,avg_method)
+  x3$Avg_Corner_Diff <- movavg(x3$Corner_Diff,avg_days,avg_method)
   
-  k <- rbind(x3[1,(ncol(x3)-13):ncol(x3)],x3[,(ncol(x3)-13):ncol(x3)] )
-  k <- k[1:(nrow(k)-1),]
+  k <- rbind(x3[1:2,(ncol(x3)-13):ncol(x3)],x3[,(ncol(x3)-13):ncol(x3)] )
+  k <- k[1:(nrow(k)-2),]
   x3 <- cbind(x3[,1:(ncol(x3)-14)],k)
   
   x4 <- merge(x[,c("matchId","Home")],x3[,c("matchId","Date", "Team","Avg_Goal_Scored","Avg_HT_Goal_Scored"
