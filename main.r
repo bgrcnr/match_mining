@@ -16,7 +16,6 @@ require(xgboost)
 require(e1071)
 require(Ckmeans.1d.dp)
 
-setwd("C:/Users/Bugra/Documents/GitHub/match_mining")
 source('data_preprocessing.r')
 source('feature_extraction.r')
 source('performance_metrics.r')
@@ -30,8 +29,8 @@ matches_data_path = "Files/df9b1196-e3cf-4cc7-9159-f236fe738215_matches.rds"
 odd_details_data_path = "Files/df9b1196-e3cf-4cc7-9159-f236fe738215_odd_details.rds"
 
 #train and test dates
-testStart=as.Date('2018-04-16')
-trainStart=as.Date('2013-09-15')
+testStart=as.Date('2018-03-16')
+trainStart=as.Date('2011-09-15')
 rem_miss_threshold=0.01 #parameter for removing bookmaker odds with missing ratio greater than this threshold
 
 
@@ -95,20 +94,30 @@ colnames(additional_data) <- col_names
 
 
 comp_data <- merge(matches, additional_data, by.x = c("Match_Date", "Home", "Away"), by.y  = c("Date", "Home", "Away"), all.x = TRUE)
-avg_days <- 5
-avg_method <- "w"
+
 
 days <- c(2,3,4)
 methods <- c("s", "t", "w")
-i <- 2
-j <- "t"
+prob_overall <- matrix(rep(NA, 3*150), 150)
 bugra_results <- data.table()
+
+i <- 4
+j <- "t"
+b <- as.Date("2018-05-16")
+a <- as.Date("2012-09-15")
+
+train_date <- as.Date(c('2011-09-15','2012-09-15','2013-09-15','2014-09-15'))
+test_date <- as.Date(c('2018-03-16','2018-04-16','2018-05-16'))
 
 for(i in days)
 {
   for(j in methods)
   {
-    
+    for(a in train_date)
+    {
+      for(b in test_date)
+      {
+        
 
 ## Add extra features to matches (winning average, score average, days before the match)
 time <- system.time(matches <- match_processing(comp_data, i, j) )
@@ -122,8 +131,8 @@ odd_details=details_data_preprocessing(odd_details_raw,matches,which_bets = c("1
 features=extract_features.openclose(matches,odd_details,pMissThreshold=rem_miss_threshold,trainStart,testStart)
 
 # divide data based on the provided dates 
-train_features=features[Match_Date>=trainStart & Match_Date<testStart] 
-test_features=features[Match_Date>=testStart] 
+train_features=features[Match_Date>=a & Match_Date<b] 
+test_features=features[Match_Date>=b] 
 
 #keep complete cases
 train_features <- train_features[complete.cases(train_features)]
@@ -148,20 +157,21 @@ results[1,] <- (testclass == 1)*1
 results[2,] <- (testclass == 0)*1
 results[3,] <- (testclass == 2)*1
 
-g <- 19
-k <- 106
-
-for (g in c(19,21,23,25))
+g <- 50
+k <- 300
+for (g in c(15,21,25,30,35,40))
 {
-for(k in c(106,142, 160:180))
+for(k in c(350:375))
 {
   set.seed(k)
   
 cols <- names(traindata)
 index <- sample(c(5:ncol(traindata)), g)
 cols <- cols[index]
-sort(index)
-cbind(names(traindata), 1:(ncol(traindata)))
+
+cbind(cols, c(1:length(cols)))
+
+cols <- c(6,8,9,11,23,25,37:39,97,112,127)
 ##### Model 2: Multinomial Regression
 
 #Model inputs determined
@@ -174,8 +184,6 @@ test2$Match_Result <- testclass
 
 #Model is generated
 multinomModel <- multinom(Match_Result ~ ., data=train2)
-summary (multinomModel)
-
 
 #Probabilities for each class and the results are generated
 predicted_scores <- predict (multinomModel, test2, "probs") # predict on new data
@@ -184,7 +192,6 @@ predicted_class <- predict (multinomModel, test2)
 #Confusion matrix and accuracy
 confusion_matrix_multinom <- table(predicted_class, testclass)
 accuracy_multinom <- sum(predicted_class == testclass)/length(testclass)
-accuracy_multinom
 
 prob_rearranged <- predicted_scores
 prob_rearranged[,1] <- predicted_scores[,2]
@@ -195,12 +202,28 @@ prob_rearranged[,2] <- predicted_scores[,1]
 rps2mat <- RPS_matrix(prob_rearranged, t(results))
 rps2 <- mean(rps2mat)
 rps2
-bugra_results <- rbind(bugra_results, data.table(day = i, method = j, sample = k, sample_no = g, time = time[1], accu = accuracy_multinom, rps = rps2))
-}}}}
 
+bugra_results <- rbind(bugra_results, data.table(day = i, method = j, sample = k, traindate = a, testdate = b, sample_no = g, time = time[1], accu = accuracy_multinom, rps = rps2))
+}}}}}}
+
+
+sub <- cbind(prob_rearranged, test_features$matchId, test_features$Unix_Date,test_features$Match_Result)
+sub <- as.data.table(sub)
+sub <- sub[order(V5)]
+sub[158:180,]
+sub <- sub[158:172,]
+sub <- merge(sub,matches[,c("matchId","Home","Away","Match_Date")], by.x = "V4", by.y = "matchId")
+sub <- sub[order(Match_Date)]
+write.csv(sub, file = "C:/Users/Bugra/Documents/GitHub/match_mining/sub7.csv")
+getwd()
+test_features[order(Match_Date)]
 gulsah <- bugra_results[order(rps)]
 gulsah[1:50,]
-
+unique(gulsah$testdate)
+unique(gulsah$traindate)
+test_date
+train_date
+gulsah2 <- gulsah
 train1 <- traindata[,..cols]
 test1 <- testdata[,..cols]
 trainc1 <- as.factor((trainclass==1)*0 + (trainclass==0)*1+(trainclass==2)*2)
