@@ -1,0 +1,938 @@
+---
+title: "Project_Report"
+author: "Alim Bugra Cinar - Gulsah Akcakir"
+date: "7 January 2019"
+output: 
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# 1. Introduction
+
+Since sports betting market becoming more and more competitive, forecasting match results becoming increasingly popular. With easy-to-use programming tools and increased attention, sports forecasting has been widely researched. 
+In this project, we were given historical information of English Premier League matches and odds given by different bookmakers. The aim was to provide better forecasts for 1x2 bets, using learning algorithms we have discussed during the semester. 
+We considered the problem as a multi-class (Away, Tie, Home) classification problem and applied proper algorithms to obtain better forecasting results.  At some point, we figured out that features we are using as crucial as the model we fit. Then, we tried to generate more relevant features that can improve our models’ performances. Although we applied and evaluated different algorithms, multinomial logistic regression was the outstanding one from the very beginning. Thus, at each round, we have submitted predictions resulted from our multinomial logistic regression model. 
+Features used for training and prediction gained from the provided data. To prevent irrelevant information, we only considered matches after 2012. Attribute information is below:
+Unix_Date:  unix date of the match
+  	Match_Hour: hour of the match (12 to 20)
+  	Match_Day: day of the match (1 to 7)
+  	Day_Diff: difference between teams’ # of days since last game played
+  	Home(Away)_Last_Yellow: number of yellow cards shown in the last game
+  	Home(Away)_Last_Red: number of red cards shown in the last game
+ 	Home(Away)_Avg_Goal_Scored: average # of goals scored in the last 5 games 
+ 	Home(Away)_Avg_HT_Goal_Scored: average # of goals scored until half time in the last 5 games
+ 	Home(Away)_Avg_Win: percentage of wins in the last 5 games  
+ 	Home(Away)_Avg_Tie: percentage of ties in the last 5 games 
+ 	Home(Away)_Avg_Shots_Made: average # of shots in the last 5 games 
+ 	Home(Away)_Avg_SoT_Made: average # of shots on target in the last 5 games 
+ 	Home(Away)_Avg_Fouls_Committed: average # of fouls committed in the last 5 games 
+ 	Home(Away)_Avg_Corners: average # of corners in the last 5 games
+ 	Home(Away)_Avg_Goal_Diff: average of the last 5 games’ goals differences
+ 	Home(Away)_Avg_HT_Goal_Diff: average of the last 5 games’ half time goals differences
+ 	Home(Away)_Avg_Shot_Diff: average of the last 5 games’ shots differences
+ 	Home(Away)_Avg_SoT_Diff: average of the last 5 games’ shots on target differences
+ 	Home(Away)_Avg_Foul_Diff: average of the last 5 games’ fauls differences
+ 	Home(Away)_Avg_Corner_Diff: average of the last 5 games’ corners differences
+ 	distance: distance between the cities of home and away teams 
+ 	Home(Away)_ELO: ELO rating of the team
+Additionally, we considered both opening and closing odds, in type 1x2, from several bookmakers as predictors.
+
+
+
+# 2. Related Literature
+
+In this project, we mainly benefited from statistical learning techniques discussed in IE 582 class and “An Introduction to Statistical Learning - with Applications in R”[1] book. The classification algorithms we utilized are namely multinomial logistic regression, k-nearest neighbor classification, bagging, decision trees, random forests, boosting and support vector machines. Above mentioned techniques are implemented respectively by using multinom function of “nnet”[2] package, knn.predict function of “KODAMA”[3] package, bagging function of “adabag”[4] package, rpart function of “rpart”[5] package, randomForest function of “randomForest”[6] package, gbm function of “gbm”[7] package and lastly svm function of “e1071”[8] package. 
+	To best of our knowledge, the papers written in the result prediction area are mainly benefited from the same models. However, the main distinction occurs in the features used in the papers. Rosli et al.[9] uses features showing the performance of teams, such as goals scored in the half time and full time, shots made and shots on target, and corners for both home and away teams. Hvattum et al.[10] utilizes ELO ratings for score prediction. In the project we utilized the mentioned features in addition to the odds of the bookmakers.
+	
+
+# 3. Approach and Results
+
+```{r, include=FALSE}
+require(data.table)
+require(anytime)
+require(scatterplot3d)
+require(FNN)
+require(glmnet)
+require(TunePareto)
+require(data.table)
+require(RANN.L1)
+require(lubridate)
+require(devtools)
+require(nnet)
+library(adabag)
+require(pracma)
+require(gbm)
+require(xgboost)
+require(e1071)
+require(Ckmeans.1d.dp)
+library(randomForest)
+require(rpart)
+
+```
+
+
+## 3.1 Data Loading and Preprocessing
+
+### 3.1.1 Content of the Source Files
+
+```{r}
+source('data_preprocessing.r')
+source('feature_extraction.r')
+source('performance_metrics.r')
+source('match_processing.r')
+
+```
+
+The functions above are used for data preprocessing. The content of the functions are described below.
+
+
+```{r, include=TRUE, eval=FALSE}
+
+
+#' Data Preprocessing for Matches Data
+#'
+#' Makes preprocessing on raw matches data so that it can be used by other functions.
+#'
+#' @param data A data.table containing raw match data
+#' @export
+#' @examples
+#' matches_data_preprocessing(matches_raw)
+#'
+
+matches_data_preprocessing <- function(data){
+
+  temp = copy(data)
+  temp = unique(temp,by="matchId") 
+  setnames(temp,c("home","away","score","date"),c("Home","Away","Score","Match_Date"))
+  ##in order to eliminate repeated team names
+  temp[Home %in% c("manchester-utd", "manchester-united"), Home:= "manchester united"]
+  temp[Home == "manchester-city", Home:= "manchester city"]
+  temp[Home == "crystal-palace", Home:= "crystal palace"]
+  temp[Home %in% c("newcastle utd","newcastle united") , Home:= "newcastle"]
+  temp[Home == "stoke city", Home:= "stoke"]
+  temp[Home == "west-ham", Home:= "west ham"]
+  temp[Away %in% c("manchester-utd", "manchester-united"), Away:= "manchester united"]
+  temp[Away == "manchester-city", Away:= "manchester city"]
+  temp[Away == "crystal-palace", Away:= "crystal palace"]
+  temp[Away %in% c("newcastle utd","newcastle united") , Away:= "newcastle"]
+  temp[Away == "stoke city", Away:= "stoke"]
+  temp[Away == "west-ham", Away:= "west ham"]
+  #####################################################################################
+  ##city info added
+  cities = c("blackburn","blackpool", "bolton", "bournemouth","brighton","burnley","cardiff","huddersfield","hull city",
+             "leicester","manchester","middlesbrough","newcastle","norwich","portsmouth","reading","southampton",
+             "stoke","sunderland","swansea","watford","wigan","wolverhampton")
+  temp[Home %in% cities, Home_City := Home]
+  temp[Away %in% cities, Away_City := Away]
+  temp[Home %in% c("arsenal", "chelsea","crystal palace","fulham","qpr","tottenham","west ham"), Home_City:= "london"]
+  temp[Away %in% c("arsenal", "chelsea","crystal palace","fulham","qpr","tottenham","west ham"), Away_City:= "london"]
+  temp[Home %in% c("aston villa", "birmingham", "west brom"), Home_City:= "birmingham"]
+  temp[Away %in% c("aston villa", "birmingham", "west brom"), Away_City:= "birmingham"]
+  temp[Home %in% c("manchester united", "manchester city"), Home_City:="manchester"] 
+  temp[Away %in% c("manchester united", "manchester city"), Away_City:="manchester"] 
+  temp[Home %in% c("everton", "liverpool"), Home_City:= "liverpool"]
+  temp[Away %in% c("everton", "liverpool"), Away_City:= "liverpool"]
+  temp[Home == "wolves", Home_City:= "wolverhampton"]
+  temp[Away == "wolves", Away_City:= "wolverhampton"]
+  #####################################################################################  
+  
+  
+  temp[,Home:=tolower(Home)]
+  temp[,Away:=tolower(Away)]
+  ### Unix Date is added by Bugra
+  temp[,Unix_Date := Match_Date]
+  temp[,Match_DateTime:=as.POSIXct(Match_Date,tz="UTC",origin = as.POSIXct("1970-01-01",tz="UTC"))]
+  temp[,Match_Hour := format(strptime(Match_DateTime,"%Y-%m-%d %H:%M:%OS"),'%H')]
+  temp[,Match_Hour := as.numeric(Match_Hour)]
+  temp[,Match_Date := as.Date(Match_DateTime,format="%Y-%m-%d")]
+  ### Match_Day is added by bugra, works with lubridate package
+  temp[,Match_Day := wday(Match_Date)]
+  temp[,AWA_FLAG:=0]
+  temp[(Score %like% "AWA."),`:=`(Score=gsub("AWA.","",Score),AWA_FLAG=1)]
+  temp[,POSTP_FLAG:=0]
+  temp[(Score == "POSTP."),`:=`(Score=gsub("POSTP.","",Score),POSTP_FLAG=1)]
+  temp[,CAN_FLAG:=0]
+  temp[(Score == "CAN."),`:=`(Score=gsub("CAN.","",Score),CAN_FLAG=1)]
+  latestDateTimeofKnownScore = max(temp[Score!=""]$Match_DateTime)
+  POSTP_toberemoved = temp[which(temp$POSTP_FLAG==1 & temp$Match_DateTime <= latestDateTimeofKnownScore)]$matchId
+  if(length(POSTP_toberemoved)!=0){
+    cat("Following postponed matches are REMOVED during data_preprocessing:\n")
+    print(data[matchId%in%POSTP_toberemoved,])
+    temp=temp[!matchId%in%POSTP_toberemoved,]
+  }
+  POSTP_tobekept = temp[which(temp$POSTP_FLAG==1 & temp$Match_DateTime > latestDateTimeofKnownScore)]$matchId
+  if(length(POSTP_tobekept)!=0){
+    cat("Following postponed matches are KEPT during data_preprocessing:\n")
+    print(data[matchId%in%POSTP_tobekept,])
+  }
+
+  temp[,c("Home_Score","Away_Score") := lapply(tstrsplit(Score,":",fixed=T),as.integer)]
+  temp[,`:=`(Match_Result = ifelse(Home_Score == Away_Score, "Tie" , ifelse(Home_Score > Away_Score, 'Home' , 'Away'))
+             ,Total_Score = Home_Score + Away_Score)]
+  temp[,`:=`(Result_Home = ifelse(Match_Result=="Home",1,0)
+             ,Result_Tie = ifelse(Match_Result=="Tie",1,0)
+             ,Result_Away = ifelse(Match_Result=="Away",1,0))]
+
+  temp[,c('Score','Match_DateTime','AWA_FLAG','POSTP_FLAG','CAN_FLAG'):=NULL]
+  gc()
+  return(temp)
+}
+
+#' Data Preprocessing for Odd Details Data
+#'
+#' Makes preprocessing on raw odd details data so that it can be used by other functions.
+#' only 1x2 bets are considered, if you are interested in other type of odds manipulate ''which_bets''
+#' @param data A data.table containing raw odd details data
+#' @param remove_bookmaker A character vector containing the bookmakers to be removed
+#' @export
+#' @examples
+
+details_data_preprocessing <- function(data,matches,which_bets=c('1x2'),remove_bookmaker=c('BetfairExchange','PaddyPower'),removeOlderThan=30){
+  # data manipulation for historical odd data
+  details = copy(data)
+  
+  #remove duplicate entries
+  details = unique(details)
+
+  details = details[betType %in% which_bets]
+  details[,totalhandicap:=NULL]
+
+  details = merge(details,matches[,list(matchId,Match_Date)],by="matchId",all.x=T )
+  setnames(details,"date","OddChangeDateTime")
+  details[,OddChangeDateTime:=as.POSIXct(OddChangeDateTime,tz="UTC",origin = as.POSIXct("1970-01-01",tz="UTC"))]
+  details = details[difftime(Match_Date,OddChangeDateTime, units = "days") <= removeOlderThan] #remove odds seen earlier than 10 days from the match date
+  details[, odd := as.numeric(odd)]
+
+  details[,bookmaker:=gsub(" |-","",bookmaker)]
+  if(!is.null(remove_bookmaker)){
+    details = details[!(bookmaker %in% remove_bookmaker)]
+  }
+
+  gc()
+  return(details)
+}
+
+
+```
+
+There are two functions in the data_preprocessing.r file. The first function "matches_data_preprocessing" takes raw match data. Raw data consists several types of team names (ie Manchester United as manchester-utd and manchester-united). The function firstly eliminates repeated names by standardizing the team names. Then, it adds the cities of the football clubs, which will be necessary for calculating distances between cities. After that, the function reformats the Unix Date to year-month-day format. Finally, the function produces result of the matches, and goals scored by each team from result information, which is included in the raw matches data in the form of "Home Score-Away Score".
+
+The second function is details_data_preprocessing and it produces the chosen odd details from raw odds data. In the raw odds data, several odds such as over-under, asian handicap etc. are included. The function produces the types of odds chosen by the user.
+
+```{r, include = TRUE, eval = FALSE}
+#' Feature Extraction
+#' knn.probability
+#' knn.predict
+#' knn.dist
+#' classprob
+
+
+ 
+extract_features.openclose <- function(matches,odd_details,pMissThreshold=0.01,trainStart,testStart){
+
+  details = copy(odd_details)
+  matches = copy(matches)
+
+  details=details[order(OddChangeDateTime)]
+  feature_odd_details=details[,list(Odd_Open=odd[1],Odd_Close=odd[.N]),list(matchId,betType,oddtype,bookmaker)]
+
+  feature_odd_details = merge(matches[,list(matchId,Match_Date)], feature_odd_details,by="matchId")
+
+
+  #HANDLE MISSINGS
+  details_temp = dcast(feature_odd_details, matchId+betType ~ paste0("Odd_Close_",bookmaker)+oddtype, value.var = c("Odd_Close"))
+  details_melt = melt(details_temp, id.vars = c("matchId","betType"), measure.vars = names(details_temp)[names(details_temp) %like% "Odd_Close"], value.name = "odd")
+  details_melt[,c("OpenClose","bookmaker","oddtype"):=tstrsplit(variable,split="_",keep=c(2:4))]
+  details_melt[,variable:=NULL]
+  details_melt = merge(matches[,list(matchId,Match_Date)], details_melt,by="matchId",all=T)
+  
+  bookieMissingness = details_melt[Match_Date >= trainStart,list(.N,percMiss=sum(is.na(odd))/.N),by=list(bookmaker,betType)]
+  bookiesToKeep = unique(bookieMissingness[percMiss <= pMissThreshold]$bookmaker)
+  cat("Number of bookmakers with proportion of missings below",pMissThreshold,"since",as.character(trainStart),":",length(bookiesToKeep),"\n")
+
+  nonmissingBookmakers_sinceTestStart = unique(details_melt[Match_Date >= testStart, list(.N,NA_SUM=sum(is.na(odd))),by=list(bookmaker,betType)][NA_SUM==0]$bookmaker)
+  bookiesToKeep = intersect(bookiesToKeep,nonmissingBookmakers_sinceTestStart)
+  cat("Number of bookmakers with no missings since testStart", as.character(testStart), ":", length(bookiesToKeep), "\n")
+
+  details = dcast(feature_odd_details,matchId~oddtype+bookmaker,value.var = c("Odd_Open","Odd_Close"))
+  columnsToKeep = grep(paste(bookiesToKeep,collapse="|"),names(details),value=T)
+  details = details[,c("matchId",columnsToKeep),with=F]
+  #HANDLE MISSINGS END
+
+
+  details = merge(matches[,-c('Home','Away','Home_Score','Away_Score','Total_Score','Result_Home','Result_Tie','Result_Away','type'),with=F],
+                  details,by="matchId",all=T)
+
+
+  return(features = details)
+}
+
+
+```
+
+feature_extraction.r file consists of a function named extract_features.openclose. The function takes output of details_data_preprocessing function and melts the odds of each bookmaker. Additionally, as there are multiple odds determined by the bookmaker as time proceeds, each match has more two odds from the same bookmaker. The function reduces those odds into two namely open and close. Open odds and close odds are the first and the last odds determined by the bookmakers, and they are the output of the extract_features.openclose() function. 
+
+```{r, include=TRUE,eval=FALSE}
+#' Performance Metric: Ranked Probability Score
+#'
+#' @param probs vector of 3, predicted probabilities
+#' @param outcomes vector of 3, binary outcomes, should be provided with the same order as probs
+#' @export
+#' @examples
+RPS_single<- function(probs,outcomes){
+  probs = cumsum(probs)
+  outcomes = cumsum(outcomes)
+  RPS = sum((probs-outcomes )^2) / (length(probs)-1)
+  return(RPS)
+}
+
+RPS_matrix<- function(probs,outcomes){
+  probs=as.matrix(probs)
+  outcomes=as.matrix(outcomes)
+  probs=t(apply(t(probs), 2, cumsum))
+  outcomes=t(apply(t(outcomes), 2, cumsum))
+  RPS = apply((probs-outcomes)^2,1,sum) / (ncol(probs)-1)
+  return(RPS)
+}
+
+```
+
+The third file used in the project is probability_metrics.r. This file contains two functions namely RPS_single and RPS_matrix. As their names imply, the first function produces an RPS score and the second function produces an RPS matrix which gives RPS scores for each match.
+
+```{r, include=TRUE, eval=FALSE}
+match_processing <- function(data, avg_days, avg_method)
+{
+  temp <- copy(data)
+  
+  temp <- temp[order(matchId)]
+  
+  city_distances <- read.csv("city_distances.csv")
+  elo_data <- as.data.table(read.csv("elo_data.csv"))
+  # Calculating Day Before Match
+  x <- temp[,c("matchId","Match_Date","Home","Away","Home_City",
+               "Away_City", "Home_Score", "Away_Score", "Half Time Home Team Goals",
+               "Half Time Away Team Goals","Result_Home","Result_Away", "Result_Tie",
+               "Home Team Shots","Away Team Shots" ,"Home Team Shots on Target","Away Team Shots on Target",
+               "Home Team Fouls Committed", "Away Team Fouls Committed", "Home Team Corners", "Away Team Corners",
+               "Home Team Yellow Cards",  "Away Team Yellow Cards",   "Home Team Red Cards", "Away Team Red Cards")]
+  
+  
+  x1 <- x[,c("matchId","Match_Date","Home", "Home Team Yellow Cards", "Home Team Red Cards" )]
+  x2 <- x[,c("matchId","Match_Date","Away", "Away Team Yellow Cards", "Away Team Red Cards")]
+  
+  names <- c("matchId", "Match_Date", "Team", "Yellow_Card", "Red_Card" )
+  colnames(x1) <- names
+  colnames(x2) <- names
+  
+  x3 <- rbind(x1,x2)
+  x3 <- x3[order(Team, Match_Date)]
+  
+  x4 <- rbind(x3[1,c("Match_Date","Yellow_Card", "Red_Card")], x3[,c("Match_Date","Yellow_Card", "Red_Card")])
+  x4 <- x4[1:(nrow(x4)-1),]
+  x3$Day_Before_Match <- as.numeric(x3$Match_Date - x4$Match_Date)
+  x3$Last_Yellow <- x4$Yellow_Card
+  x3$Last_Red <- x4$Red_Card
+  
+  
+  x5 <- merge(x[,c("matchId", "Home")],x3[,c("matchId","Team", "Day_Before_Match", "Last_Yellow", "Last_Red")],by.x = c("matchId","Home"), by.y = c("matchId","Team")  )
+  colnames(x5)[c((ncol(x5)-2):ncol(x5))] <- c("Home_Day","Home_Last_Yellow", "Home_Last_Red")
+  x6 <- merge(x[,c("matchId", "Away")],x3[,c("matchId","Team", "Day_Before_Match","Last_Yellow", "Last_Red")],by.x = c("matchId","Away"), by.y = c("matchId","Team")  )
+  colnames(x6)[c((ncol(x6)-2):ncol(x6))] <- c("Away_Day","Away_Last_Yellow", "Away_Last_Red")
+  
+  x5 <- x5[order(matchId)]
+  x6 <- x6[order(matchId)]
+  
+  
+  
+  temp$Day_Diff <- x5$Home_Day - x6$Away_Day
+  temp[, Day_Diff := (Day_Diff>=14)*14 + (Day_Diff<14)*Day_Diff]
+  temp$Home_Last_Yellow <- x5$Home_Last_Yellow
+  temp$Home_Last_Red <- x5$Home_Last_Red
+  temp$Away_Last_Yellow <- x6$Away_Last_Yellow
+  temp$Away_Last_Red <- x6$Away_Last_Red
+  
+  #Remove unnecessary data
+  rm(x1,x2,x3,x4,x5,x6)
+  
+
+  x1 <- x[,c("matchId", "Match_Date", "Home", "Home_Score", "Away_Score","Half Time Home Team Goals", "Half Time Away Team Goals",
+             "Result_Home","Result_Tie","Home Team Shots" , "Away Team Shots","Home Team Shots on Target", "Away Team Shots on Target",
+             "Home Team Fouls Committed", "Away Team Fouls Committed", "Home Team Corners", "Away Team Corners")]
+  x2 <- x[,c("matchId", "Match_Date", "Away", "Away_Score", "Home_Score","Half Time Away Team Goals", "Half Time Home Team Goals",
+             "Result_Away","Result_Tie","Away Team Shots" , "Home Team Shots","Away Team Shots on Target", "Home Team Shots on Target",
+             "Away Team Fouls Committed", "Home Team Fouls Committed", "Away Team Corners", "Home Team Corners")]
+  
+  names <- c("matchId","Date", "Team", "Goals_Scored", "Goals_Received", "HT_Goals_Scored", "HT_Goals_Received", "Win", "Tie", "Shots_Made",
+             "Shots_Received", "SoT_Made", "SoT_Received", "Fouls_Committed","Fouls_Received","Corners_Given", "Corners_Taken")
+  colnames(x1) <- names
+  colnames(x2) <- names
+  x3 <- rbind(x1,x2)
+  x3 <- x3[order(Team, Date)]
+  x3$Goal_Diff <- as.numeric(x3$Goals_Scored - x3$Goals_Received)
+  x3$HT_Goal_Diff <- as.numeric(x3$HT_Goals_Scored - x3$HT_Goals_Received)
+  x3$Shot_Diff <- as.numeric(x3$Shots_Made - x3$Shots_Received)
+  x3$SoT_Diff <- as.numeric(x3$SoT_Made - x3$SoT_Received)
+  x3$Foul_Diff <- as.numeric(x3$Fouls_Committed - x3$Fouls_Received)
+  x3$Corner_Diff <- as.numeric(x3$Corners_Given - x3$Corners_Taken)
+  
+ 
+  x3$Avg_Goal_Scored <- as.numeric(rep(NA, nrow(x3)))
+  x3$Avg_HT_Goal_Scored <- as.numeric(rep(NA, nrow(x3)))
+  x3$Avg_Win <- as.numeric(rep(NA, nrow(x3)))
+  x3$Avg_Tie <- as.numeric(rep(NA, nrow(x3)))
+  x3$Avg_Shots_Made <- as.numeric(rep(NA, nrow(x3)))
+  x3$Avg_SoT_Made <- as.numeric(rep(NA, nrow(x3)))
+  x3$Avg_Fouls_Committed <- as.numeric(rep(NA, nrow(x3)))
+  x3$Avg_Corners <- as.numeric(rep(NA, nrow(x3)))
+  
+  x3$Avg_Goal_Diff <- as.numeric(rep(NA, nrow(x3)))
+  x3$Avg_HT_Goal_Diff <- as.numeric(rep(NA, nrow(x3)))
+  x3$Avg_Shot_Diff <- as.numeric(rep(NA, nrow(x3)))
+  x3$Avg_SoT_Diff <- as.numeric(rep(NA, nrow(x3)))
+  x3$Avg_Foul_Diff <- as.numeric(rep(NA, nrow(x3)))
+  x3$Avg_Corner_Diff <- as.numeric(rep(NA, nrow(x3)))
+  
+ 
+  x3$Avg_Goal_Scored <- movavg(x3$Goals_Scored ,avg_days,avg_method)
+  x3$Avg_HT_Goal_Scored <- movavg(x3$HT_Goals_Scored ,avg_days,avg_method)
+  x3$Avg_Win <- movavg(x3$Win ,avg_days,avg_method)
+  x3$Avg_Tie <- movavg(x3$Tie ,avg_days,avg_method)
+  x3$Avg_Shots_Made <- movavg(x3$Shots_Made ,avg_days,avg_method)
+  x3$Avg_SoT_Made <- movavg(x3$SoT_Made ,avg_days,avg_method)
+  x3$Avg_Fouls_Committed <- movavg(x3$Fouls_Committed ,avg_days,avg_method)
+  x3$Avg_Corners <- movavg(x3$Corners_Given ,avg_days,avg_method)
+  x3$Avg_Goal_Diff <- movavg(x3$Goal_Diff,avg_days,avg_method)
+  x3$Avg_HT_Goal_Diff <- movavg(x3$HT_Goal_Diff,avg_days,avg_method)
+  x3$Avg_Shot_Diff <- movavg(x3$Shot_Diff,avg_days,avg_method)
+  x3$Avg_SoT_Diff <- movavg(x3$SoT_Diff,avg_days,avg_method)
+  x3$Avg_Foul_Diff <- movavg(x3$Foul_Diff,avg_days,avg_method)
+  x3$Avg_Corner_Diff <- movavg(x3$Corner_Diff,avg_days,avg_method)
+  
+  k <- rbind(x3[1:2,(ncol(x3)-13):ncol(x3)],x3[,(ncol(x3)-13):ncol(x3)] )
+  k <- k[1:(nrow(k)-2),]
+  x3 <- cbind(x3[,1:(ncol(x3)-14)],k)
+  
+  x4 <- merge(x[,c("matchId","Home")],x3[,c("matchId","Date", "Team","Avg_Goal_Scored","Avg_HT_Goal_Scored"
+                                            ,"Avg_Win","Avg_Tie","Avg_Shots_Made","Avg_SoT_Made",
+                                            "Avg_Fouls_Committed","Avg_Corners","Avg_Goal_Diff","Avg_HT_Goal_Diff",
+                                            "Avg_Shot_Diff", "Avg_SoT_Diff", "Avg_Foul_Diff", 
+                                            "Avg_Corner_Diff")],by.x = c("matchId","Home"), by.y = c("matchId","Team")  )
+  colnames(x4)[c((ncol(x4)-13):ncol(x4))] <- c("Home_Avg_Goal_Scored","Home_Avg_HT_Goal_Scored"
+                                              ,"Home_Avg_Win","Home_Avg_Tie","Home_Avg_Shots_Made","Home_Avg_SoT_Made",
+                                              "Home_Avg_Fouls_Committed","Home_Avg_Corners","Home_Avg_Goal_Diff"
+                                              ,"Home_Avg_HT_Goal_Diff","Home_Avg_Shot_Diff", "Home_Avg_SoT_Diff", "Home_Avg_Foul_Diff", 
+                                              "Home_Avg_Corner_Diff")
+  x5 <- merge(x[,c("matchId","Away")],x3[,c("matchId","Date", "Team","Avg_Goal_Scored","Avg_HT_Goal_Scored"
+                                            ,"Avg_Win","Avg_Tie","Avg_Shots_Made","Avg_SoT_Made",
+                                            "Avg_Fouls_Committed","Avg_Corners","Avg_Goal_Diff","Avg_HT_Goal_Diff",
+                                            "Avg_Shot_Diff", "Avg_SoT_Diff", "Avg_Foul_Diff", 
+                                            "Avg_Corner_Diff")],by.x = c("matchId","Away"), by.y = c("matchId","Team")  )
+  colnames(x5)[c((ncol(x5)-13):ncol(x5))] <- c("Away_Avg_Goal_Scored","Away_Avg_HT_Goal_Scored"
+                                               ,"Away_Avg_Win","Away_Avg_Tie","Away_Avg_Shots_Made","Away_Avg_SoT_Made",
+                                               "Away_Avg_Fouls_Committed","Away_Avg_Corners","Away_Avg_Goal_Diff"
+                                               ,"Away_Avg_HT_Goal_Diff","Away_Avg_Shot_Diff", "Away_Avg_SoT_Diff", "Away_Avg_Foul_Diff", 
+                                               "Away_Avg_Corner_Diff")
+  
+  x4 <- x4[order(matchId)]
+  x5 <- x5[order(matchId)]
+  
+  temp <- cbind(temp, x4[,(ncol(x4)-13):ncol(x4)], x5[,(ncol(x5)-13):ncol(x5)])
+  
+  
+  
+  #Remove unnecessary data
+  rm(x,x1,x2,x3,x4,x5,k)
+  
+  ### distances
+  #x is a dummy variable to protect the type of matches data 
+  x <- temp[,c("matchId","Home_City","Away_City")]
+  x$city_combo <- paste(x$Home_City,x$Away_City,sep="-")
+  city_distances <- as.data.table(city_distances)
+  city_distances <- unique(city_distances)
+  city_distances$city_combo <- paste(city_distances$city_1,city_distances$city_2,sep="-")
+  x <- merge(x, city_distances[,c("city_combo","distance")], by= "city_combo")
+  x <- x[order(matchId)]
+  temp$distance <- x$distance
+  rm(x)
+  
+  temp[,c("leagueId", "type", "Home_City", "Away_City", "Home_Score", "Away_Score", "Total_Score", "Result_Home", "Result_Tie", "Result_Away","Full Time Home Team Goals",
+          "Full Time Away Team Goals", "Full Time Result", "Half Time Home Team Goals",
+          "Half Time Away Team Goals","Half Time Result", "Referee",
+          "Home Team Shots","Away Team Shots" ,"Home Team Shots on Target","Away Team Shots on Target",
+          "Home Team Fouls Committed", "Away Team Fouls Committed", "Home Team Corners", "Away Team Corners",
+          "Home Team Yellow Cards",  "Away Team Yellow Cards",   "Home Team Red Cards", "Away Team Red Cards") := NULL]
+  x <- temp[,c("matchId","Home", "Away", "Match_Date")]
+  
+  x$Match_Date <- as.Date(x$Match_Date)
+  
+  elo_data$From <- as.Date(elo_data$From)
+  
+  x <- merge(x=x, y=elo_data, by.x = c("Home", "Match_Date"), by.y = c("Club", "From"), all.x=TRUE)
+  x$Home_ELO = x$Elo
+  x[,Elo := NULL]
+  
+  x <- merge(x=x, y=elo_data, by.x = c("Away", "Match_Date"), by.y = c("Club", "From"), all.x=TRUE)
+  x$Away_ELO = x$Elo
+  x[,Elo := NULL]
+  x <- x[order(matchId)]
+  temp$Home_ELO <- x$Home_ELO
+  temp$Away_ELO <- x$Away_ELO
+  
+  
+  rm(x)
+  gc()
+  return(temp)
+}
+
+```
+
+The above chunk contains the content of the match_processing.r file. The file contains match_processing() function and takes the preprocessed matches data, average days and method for average calculations as inputs. The aim of the function is to add several features described in the introduction part to the matches data. Average days and method of average are the inputs used for calculating the features such as average goals, average corners etc. They determine how many matches will be used for generating average information and which moving average method will be used for calculation. 
+
+
+```{r, include=TRUE,eval=FALSE}
+library(data.table)
+library("httr")
+
+clubnames <- c("Tottenham", "AstonVilla", "Wolves","Bolton","Wigan","Sunderland", "Blackburn","Chelsea", "Liverpool",
+               "ManUnited", "WestBrom","Birmingham","Everton","Stoke","WestHam", "Arsenal", "Newcastle","Fulham",
+               "ManCity","Blackpool","QPR", "Swansea","Norwich","Reading" ,"Southampton","CrystalPalace","Hull",
+              "Cardiff", "Leicester","Burnley","Bournemouth","Watford","Middlesbrough","Brighton","Huddersfield" )
+
+elo_data <- as.data.table(NULL)
+
+for (names in clubnames){
+  query <- paste("api.clubelo.com/", names, sep="")
+  out <- GET(url=query)
+  data <- as.data.table(content(out))
+  data <- data[From >= "2010-08-14"]
+  data <- data[,-c("Level", "Country","Rank")]
+  elo_data <- rbind(elo_data,data)
+  rm(data,names,out,query)
+}
+
+elo_data <- as.data.table(lapply(elo_data, function(v) {
+  if (is.character(v)) return(tolower(v))
+  else return(v)
+}))
+
+elo_data[Club=="man united", Club:= "manchester united"]
+elo_data[Club=="man city", Club:= "manchester city"]
+
+elo_data[,Diff:=To-From]
+n.times <- elo_data$Diff + 1
+elo_data <- elo_data[rep(seq_len(nrow(elo_data)),n.times)]
+elo_data[order(Club,From)]
+elo_data <- elo_data[,-c("To", "Diff")]
+
+
+
+for (i in 2:(nrow(elo_data))) {
+  if (elo_data$Elo[i] == elo_data$Elo[i-1]){
+    elo_data$From[i] = (elo_data$From[i-1] + 1)
+  }
+}
+
+
+write.csv(elo_data, "elo_data.csv")
+
+
+```
+
+Lastly, the chunk above contains the codes necessary for generating elo features. The chunk firstly downloads precalculated elo data from the clubelo.com website and produces a .csv file used for elo feature extraction in the match_processing() function. As it is used only once for generating elo_data.csv, it is not included in the rest of the codes.
+
+
+### 3.1.2 Load Data and Preprocess
+
+```{r, include=false, eval=TRUE}
+#save paths
+matches_data_path = "Files/df9b1196-e3cf-4cc7-9159-f236fe738215_matches.rds"
+odd_details_data_path = "Files/df9b1196-e3cf-4cc7-9159-f236fe738215_odd_details.rds"
+
+#train and test dates
+testStart=as.Date('2018-03-16')
+trainStart=as.Date('2011-09-15')
+rem_miss_threshold=0.01 #parameter for removing bookmaker odds with missing ratio greater than this threshold
+
+
+# read data
+city_distances <- read.csv("city_distances.csv")
+s_2018 <- as.data.table(read.csv("Files/2018_data.csv"))
+s_2017 <- as.data.table(read.csv("Files/2017_data.csv"))
+s_2016 <- as.data.table(read.csv("Files/2016_data.csv"))
+s_2015 <- as.data.table(read.csv("Files/2015_data.csv"))
+s_2014 <- as.data.table(read.csv("Files/2014_data.csv"))
+s_2013 <- as.data.table(read.csv("Files/2013_data.csv"))
+s_2012 <- as.data.table(read.csv("Files/2012_data.csv"))
+s_2011 <- as.data.table(read.csv("Files/2011_data.csv"))
+s_2010 <- as.data.table(read.csv("Files/2010_data.csv"))
+
+matches_raw=readRDS(matches_data_path)
+odd_details_raw=readRDS(odd_details_data_path)
+
+# preprocess matches
+#matched datapreprocessing function is edited, it adds unixdate and weekday columns
+
+matches=matches_data_preprocessing(matches_raw)
+
+
+
+additional_data <- rbind(s_2010[,1:23],s_2011[,1:23],s_2012[,1:23],s_2013[,1:23],s_2014[,1:23]
+                           ,s_2015[,1:23],s_2016[,1:23],s_2017[,1:23],s_2018[,1:23])
+additional_data$HomeTeam <- as.character(additional_data$HomeTeam)
+additional_data$AwayTeam <- as.character(additional_data$AwayTeam)
+additional_data$Date <- dmy(additional_data$Date)
+additional_data <- additional_data[complete.cases(additional_data)]
+
+names1 <- sort(unique(additional_data$HomeTeam))
+names2 <- sort(unique(matches$Home))
+names3 <- cbind(names1,names2)
+
+for(i in 1:nrow(names3))
+{
+  additional_data[HomeTeam == names3[i,1]]$HomeTeam <- names3[i,2]
+  additional_data[AwayTeam == names3[i,1]]$AwayTeam <- names3[i,2]
+  
+}
+
+additional_data <- additional_data[,Div:=NULL]
+
+col_names <- c("Date", "Home", "Away", "Full Time Home Team Goals",
+               "Full Time Away Team Goals", "Full Time Result" ,"Half Time Home Team Goals",
+               "Half Time Away Team Goals", "Half Time Result", "Referee", "Home Team Shots",
+               "Away Team Shots", "Home Team Shots on Target", "Away Team Shots on Target",
+               "Home Team Fouls Committed", "Away Team Fouls Committed", "Home Team Corners",
+               "Away Team Corners", "Home Team Yellow Cards", "Away Team Yellow Cards",
+               "Home Team Red Cards", "Away Team Red Cards")
+
+colnames(additional_data) <- col_names
+
+comp_data <- merge(matches, additional_data, by.x = c("Match_Date", "Home", "Away"), by.y  = c("Date", "Home", "Away"), all.x = TRUE)
+
+```
+
+Firstly, matches data, odds data and the details of the matches are loaded, but the codes are not included for the simplicity. Then, by using the functions in the sources, the data become ready for further analysis below.  
+
+```{r, include=TRUE, eval = TRUE}
+
+## Add extra features to matches (winning average, score average, days before the match)
+matches <- match_processing(comp_data, 3, "t")
+
+# preprocess odd data
+odd_details=details_data_preprocessing(odd_details_raw,matches,which_bets = c("1x2"))
+
+# extract open and close odd type features from multiple bookmakers
+features=extract_features.openclose(matches,odd_details,pMissThreshold=rem_miss_threshold,trainStart,testStart)
+
+# divide data based on the provided dates 
+train_features=features[Match_Date>=trainStart & Match_Date<testStart] 
+test_features=features[Match_Date>=testStart] 
+
+#keep complete cases
+train_features <- train_features[complete.cases(train_features)]
+test_features <- test_features[complete.cases(test_features)]
+
+#Seperate Results and Data, remove matchID, MatchDate and LeagueID columns
+trainclass <- train_features$Match_Result
+traindata <- train_features[,-c(1,2,6)]
+testclass <- test_features$Match_Result
+testdata <- test_features[,-c(1,2,6)]
+
+#Results as numeric values
+trainclass <- (trainclass == "Home")*1 + (trainclass == "Away")*2
+testclass <- (testclass == "Home")*1 + (testclass == "Away")*2
+
+#Matrix of Results to be used as an input to the RPS function
+results <- matrix(1:(length(testclass)*3), 3)
+results[1,] <- (testclass == 1)*1
+results[2,] <- (testclass == 0)*1
+results[3,] <- (testclass == 2)*1
+
+cols <- names(traindata)
+
+```
+
+
+
+
+## 3.2 Prediction Models
+
+### 3.2.1 Multinomial Logistic Regression
+
+The first and best performing model in the project is multinomial regression. The below chunk contains the codes used for implementation. Firstly, training and test data will be used for prediction is prepared. By selecting cols variable, we can customize the feature selection in the model. For illustration purposes all features are used in the prediction. We are giving training results and training data as inputs for multinom function. The, we predict the probability scores and classes by using the model. The confusion matrix and accuracy are calculated by using the clasees and probabilities are used for RPS calculation.
+
+
+```{r}
+#Model inputs determined
+train2 <- traindata[,..cols]
+test2 <- testdata[,..cols]
+
+#Multinomial model requires results to be in the data
+train2$Match_Result <- trainclass
+test2$Match_Result <- testclass
+
+#Model is generated
+multinomModel <- multinom(Match_Result ~ ., data=train2)
+
+#Probabilities for each class and the results are generated
+predicted_scores <- predict (multinomModel, test2, "probs") # predict on new data
+predicted_class <- predict (multinomModel, test2)
+
+#Confusion matrix and accuracy
+confusion_matrix_multinom <- table(predicted_class, testclass)
+confusion_matrix_multinom
+accuracy_multinom <- sum(predicted_class == testclass)/length(testclass)
+accuracy_multinom
+
+prob_rearranged <- predicted_scores
+prob_rearranged[,1] <- predicted_scores[,2]
+prob_rearranged[,2] <- predicted_scores[,1]
+
+
+##  average RPS and RPS Matrix
+rps2mat <- RPS_matrix(prob_rearranged, t(results))
+rps2 <- mean(rps2mat)
+
+rps2
+```
+
+
+
+## 3.2.2 K-Nearest Neighbors
+
+KNN model uses distance matrix as input, therefore firstly the distance matrix is generated. After that the predictions are made according to the similarity to majority. Finally, the class and probability scores are used for confusion matrix, accuracy and average RPS calculations. Results are given below. 
+
+```{r}
+train1 <- traindata[,..cols]
+test1 <- testdata[,..cols]
+train1 <- as.data.table(scale(train1))
+test1 <- as.data.table(scale(test1))
+
+
+
+# Bind train and test data to be used as an input in KODAMA's knn.dist function
+x <- rbind(train1,test1)
+
+#Distances are calculated
+kdist <- KODAMA::knn.dist(x)
+
+#Prediction is made
+pred <- KODAMA::knn.predict(1:nrow(train1), (nrow(train1)+1):nrow(x), trainclass, kdist, k=95, agg.meth = "majority")
+
+# display the confusion matrix and accuracy
+confusion_matrix_knn_kodama <- table(pred,testclass)
+confusion_matrix_knn_kodama
+accuracy_knn_kodama <- sum(pred==testclass)/length(testclass)
+accuracy_knn_kodama
+# view probabilities (all class probabilities are returned)
+prob <- KODAMA::knn.probability(1:nrow(train1), (nrow(train1)+1):nrow(x), trainclass, kdist, k=95)
+
+prob_rearranged <- prob
+prob_rearranged[1,] <- prob[2,]
+prob_rearranged[2,] <- prob[1,]
+
+# RPS Results are calculated
+rps1mat <- RPS_matrix(t(prob_rearranged),t(results))
+rps1 <- mean(rps1mat)
+rps1
+```
+
+
+## 3.2.3 Bagging
+
+Prediction are made by using bagging in the below chunk. According to the probability predictions, RPS scores are calculated.
+
+```{r}
+train4 <- traindata[,..cols]
+test4 <- testdata[,..cols]
+train4 <- as.data.table(scale(train4))
+test4 <- as.data.table(scale(test4))
+
+#Bagging Model requires results to be in input data
+train4$Match_Result <- as.factor(trainclass)
+test4$Match_Result <- as.factor(testclass)
+
+#Model is generated
+match.bagging <- bagging(Match_Result ~ ., data = train4,boos = TRUE, mfinal = 10, control = (minsplit = 0))
+
+
+#Predictions are made
+match.predbegging <- predict.bagging(match.bagging, newdata = test4)
+
+#Probabilities for each class
+boosting_probs <- t(match.predbegging$prob)
+
+
+# Average RPS and RPS Matrix
+
+prob_rearranged <- boosting_probs
+prob_rearranged[1,] <- boosting_probs[2,]
+prob_rearranged[2,] <- boosting_probs[1,]
+
+rps4mat <- RPS_matrix(t(prob_rearranged),t(results))
+rps4 <- mean(rps4mat)
+rps4
+
+```
+
+## 3.2.4 Decision Tree
+
+Next chunk utilizes decision trees for prediction and calculation of confusion matrix, accuracy and RPS scores.
+
+```{r}
+
+train5 <- traindata[,..cols]
+test5 <- testdata[,..cols]
+train5 <- as.data.table(scale(train5))
+test5 <- as.data.table(scale(test5))
+test5class <- test_features$Match_Result
+train5 <- cbind(train_features$Match_Result
+,train5)
+colnames(train5)[1] <- "Match_Class"
+
+
+tree.match <- rpart(Match_Class~., train5)
+tree.pred <- predict(tree.match, test5, type = "class")
+table(tree.pred,test5class)
+
+sum(tree.pred==test5class)/nrow(test5)
+
+cv_results <- as.data.table(xpred.rpart(tree.match))
+
+which.min(tree.match$cptable)
+
+tree.prune <- prune(tree.match, cp = 0.01)
+tree_probs <- as.data.table(predict(tree.prune, test5))
+
+tprobs <- t(tree_probs)
+tprobs[1,] <- t(tree_probs[,2])
+tprobs[2,] <- t(tree_probs[,3])
+tprobs[3,] <- t(tree_probs[,1])
+
+tprobs <- t(tprobs)
+
+rps5 <- RPS_matrix(tprobs,t(results))
+rps5 <- mean(rps5)
+rps5
+```
+
+
+## 3.2.5 Random Forest
+
+Random forests are utilized below for class and probability predictions. Confusion matrix, accuracy and average RPS scores are calculated accordingly.
+
+```{r}
+
+train5 <- traindata[,..cols]
+test5 <- testdata[,..cols]
+train5 <- as.data.table(scale(train5))
+test5 <- as.data.table(scale(test5))
+train5class <- as.factor(train_features$Match_Result)
+
+rf_matches <- randomForest(train5, y = train5class, ntree = 1000, proximity = TRUE)
+prob_classes <- predict(rf_matches, test5)
+table(prob_classes, test5class)
+sum(tree.pred==test5class)/nrow(test5)
+
+probs_rf <- predict(rf_matches,test5, type = "prob")
+
+probs5 <- probs_rf
+probs5[,1] <- probs_rf[,2]
+probs5[,2] <- probs_rf[,3]
+probs5[,3] <- probs_rf[,1]
+
+
+rps6 <- RPS_matrix(probs5, t(results))
+rps6 <- mean(rps6)
+rps6
+```
+
+## 3.2.6 Boosting
+
+Boosting method is used for predictions below. Accuracy, confusion matrix and average RPS scores are calculated by using the output of the model.
+
+```{r}
+
+train5 <- cbind(traindata[,..cols],trainclass)
+test5 <- testdata[,..cols]
+
+
+gbm.model <- gbm(trainclass~., data = train5, n.trees = 100, interaction.depth = 1,
+                        n.minobsinnode = 10, shrinkage =0.1, distribution = "multinomial")
+gbm.prob <- predict(gbm.model, test5, n.trees = 100, type = "response")
+gbm.pred <- apply(gbm.prob, 1, which.max)
+table(gbm.pred-1, testclass)
+sum((gbm.pred-1)==testclass)/nrow(test5)
+
+probboost <- as.data.frame(gbm.prob)
+probboost2 <- as.data.frame(gbm.prob)
+probboost[,1] <- probboost2[,2]
+probboost[,2] <- probboost2[,1]
+
+rps7 <- RPS_matrix(probboost, t(results))
+rps7 <- mean(rps7)
+rps7
+
+```
+
+## 3.2.7 Support Vector Machines
+
+Support vector machine implementation is used for calculation of the performance metrics below.
+
+```{r}
+
+train6 <- traindata[,..cols]
+test6 <- testdata[,..cols]
+trainlabel <- as.factor(trainclass)
+testlabel <- as.factor(testclass)
+
+train6 <- data.frame(train6,trainlabel)
+
+tune.out <- tune(svm, trainlabel~., data = train6, kernel = "radial", 
+                 ranges = list(cost=c(0.001 , 0.01, 0.1, 1,5,10,100)))
+
+svmfit <- svm(trainlabel~., data = train6, kernel = "radial", cost = 0.1, scale = TRUE, prob = TRUE)
+bestsvm <- tune.out$best.model
+
+svmpred <- predict(bestsvm, test6)
+table(svmpred,testlabel)
+sum(svmpred==testlabel)/nrow(test6)
+
+svmprob <- predict(svmfit, test6, probability = TRUE)
+
+probsvm1 <- attributes(svmprob)$probabilities
+probsvm <- probsvm1
+probsvm[,1] <- probsvm1[,3]
+probsvm[,3] <- probsvm1[,1]
+
+rps8 <- RPS_matrix(probsvm, t(results))
+rps8 <- mean(rps8)
+rps8
+
+```
+
+
+# 4. Results
+
+
+
+# 7. References
+
+[1] James, Gareth, et al. An introduction to statistical learning. Vol. 112. New York: springer, 2013.
+[2] "nnet - The R Project for Statistical Computing."
+https://cran.r-project.org/web/packages/nnet/nnet.pdf. Access Date: 6 Jan. 2019.
+[3] "CRAN - Package KODAMA." 18 Oct. 2018, https://cran.r-project.org/package=KODAMA. Eriþim
+tarihi: 6 Jan. 2019.
+[4] "Package 'adabag' - The R Project for Statistical Computing." 14 Oct. 2015,
+https://cran.r-project.org/web/packages/adabag/adabag.pdf. Access Date: 6 Jan. 2019.
+[5] "Package 'rpart' - The R Project for Statistical Computing."
+https://cran.r-project.org/web/packages/rpart/rpart.pdf. Access Date: 6 Jan. 2019.
+[6] "Package 'randomForest' - The R Project for Statistical Computing."
+https://cran.r-project.org/web/packages/randomForest/randomForest.pdf. Access Date: 6 Jan. 2019.
+[7] "Package 'gbm' - The R Project for Statistical Computing." 16 Sep. 2018,
+https://cran.r-project.org/web/packages/gbm/gbm.pdf. Access Date: 6 Jan. 2019.
+[8] "e1071 - The R Project for Statistical Computing." 28 Jul. 2018,
+https://cran.r-project.org/web/packages/e1071/e1071.pdf. Access Date: 6 Jan. 2019.
+[9] Rosli, Che Mohamad Firdaus Che Mohd, et al. "A Comparative Study of Data Mining Techniques on Football Match Prediction." Journal of Physics: Conference Series. Vol. 1020. No. 1. IOP Publishing, 2018.
+[10] Hvattum, Lars Magnus, and Halvard Arntzen. "Using ELO ratings for match result prediction in association football." International Journal of forecasting 26.3 (2010): 460-470.

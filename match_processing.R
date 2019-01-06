@@ -6,7 +6,6 @@ match_processing <- function(data, avg_days, avg_method)
   
   city_distances <- read.csv("city_distances.csv")
   elo_data <- as.data.table(read.csv("elo_data.csv"))
-  elo_data[,X:=NULL]
   # Calculating Day Before Match
   x <- temp[,c("matchId","Match_Date","Home","Away","Home_City",
                "Away_City", "Home_Score", "Away_Score", "Half Time Home Team Goals",
@@ -163,6 +162,7 @@ match_processing <- function(data, avg_days, avg_method)
   x <- temp[,c("matchId","Home", "Away", "Match_Date")]
   
   x$Match_Date <- as.Date(x$Match_Date)
+  
   elo_data$From <- as.Date(elo_data$From)
   
   x <- merge(x=x, y=elo_data, by.x = c("Home", "Match_Date"), by.y = c("Club", "From"), all.x=TRUE)

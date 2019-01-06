@@ -16,6 +16,7 @@ require(xgboost)
 require(e1071)
 require(Ckmeans.1d.dp)
 
+
 source('data_preprocessing.r')
 source('feature_extraction.r')
 source('performance_metrics.r')
@@ -92,37 +93,12 @@ col_names <- c("Date", "Home", "Away", "Full Time Home Team Goals",
 
 colnames(additional_data) <- col_names
 
-
 comp_data <- merge(matches, additional_data, by.x = c("Match_Date", "Home", "Away"), by.y  = c("Date", "Home", "Away"), all.x = TRUE)
 
 
-days <- c(2,3,4)
-methods <- c("s", "t", "w")
-prob_overall <- matrix(rep(NA, 3*150), 150)
-bugra_results <- data.table()
-
-i <- 4
-j <- "t"
-b <- as.Date("2018-05-16")
-a <- as.Date("2012-09-15")
-
-train_date <- as.Date(c('2011-09-15','2012-09-15','2013-09-15','2014-09-15'))
-test_date <- as.Date(c('2018-03-16','2018-04-16','2018-05-16'))
-
-for(i in days)
-{
-  for(j in methods)
-  {
-    for(a in train_date)
-    {
-      for(b in test_date)
-      {
-        
 
 ## Add extra features to matches (winning average, score average, days before the match)
-time <- system.time(matches <- match_processing(comp_data, i, j) )
-
-
+matches <- match_processing(comp_data, 3, "t")
 
 # preprocess odd data
 odd_details=details_data_preprocessing(odd_details_raw,matches,which_bets = c("1x2"))
@@ -131,15 +107,12 @@ odd_details=details_data_preprocessing(odd_details_raw,matches,which_bets = c("1
 features=extract_features.openclose(matches,odd_details,pMissThreshold=rem_miss_threshold,trainStart,testStart)
 
 # divide data based on the provided dates 
-train_features=features[Match_Date>=a & Match_Date<b] 
-test_features=features[Match_Date>=b] 
+train_features=features[Match_Date>=trainStart & Match_Date<testStart] 
+test_features=features[Match_Date>=testStart] 
 
 #keep complete cases
 train_features <- train_features[complete.cases(train_features)]
 test_features <- test_features[complete.cases(test_features)]
-
-
-cbind(names(train_features), c(1:ncol(train_features)))
 
 #Seperate Results and Data, remove matchID, MatchDate and LeagueID columns
 trainclass <- train_features$Match_Result
@@ -157,21 +130,9 @@ results[1,] <- (testclass == 1)*1
 results[2,] <- (testclass == 0)*1
 results[3,] <- (testclass == 2)*1
 
-g <- 50
-k <- 300
-for (g in c(15,21,25,30,35,40))
-{
-for(k in c(350:375))
-{
-  set.seed(k)
-  
+
 cols <- names(traindata)
-index <- sample(c(5:ncol(traindata)), g)
-cols <- cols[index]
 
-cbind(cols, c(1:length(cols)))
-
-cols <- c(6,8,9,11,23,25,37:39,97,112,127)
 ##### Model 2: Multinomial Regression
 
 #Model inputs determined
@@ -202,7 +163,7 @@ prob_rearranged[,2] <- predicted_scores[,1]
 rps2mat <- RPS_matrix(prob_rearranged, t(results))
 rps2 <- mean(rps2mat)
 rps2
-
+?multinom
 bugra_results <- rbind(bugra_results, data.table(day = i, method = j, sample = k, traindate = a, testdate = b, sample_no = g, time = time[1], accu = accuracy_multinom, rps = rps2))
 }}}}}}
 
@@ -289,6 +250,7 @@ test4$Match_Result <- as.factor(testclass)
 
 #Model is generated
 match.bagging <- bagging(Match_Result ~ ., data = train4,boos = TRUE, mfinal = 10, control = (minsplit = 0))
+?bagging
 
 #Predictions are made
 match.predbegging <- predict.bagging(match.bagging, newdata = test4)
@@ -296,7 +258,7 @@ match.predbegging <- predict.bagging(match.bagging, newdata = test4)
 #Probabilities for each class
 boosting_probs <- t(match.predbegging$prob)
 
-
+?bagging
 # Average RPS and RPS Matrix
 
 prob_rearranged <- boosting_probs
@@ -308,7 +270,7 @@ rps4 <- mean(rps4mat)
 rps4
 
 ### tree
-require(rpart)
+
 
 cols <- names(traindata)
 
@@ -316,7 +278,7 @@ cbind(names(traindata), c(1:ncol(traindata)))
 cols <- cols[c(1:37)]
 
 
-
+require(rpart)
 train5 <- traindata[,..cols]
 test5 <- testdata[,..cols]
 train5 <- as.data.table(scale(train5))
@@ -326,7 +288,7 @@ train5 <- cbind(train_features$Match_Result
 ,train5)
 colnames(train5)[1] <- "Match_Class"
 
-
+?rpart
 tree.match <- rpart(Match_Class~., train5)
 tree.pred <- predict(tree.match, test5, type = "class")
 table(tree.pred,test5class)
