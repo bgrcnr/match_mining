@@ -131,7 +131,43 @@ results[2,] <- (testclass == 0)*1
 results[3,] <- (testclass == 2)*1
 
 
-cols <- names(traindata)
+set.seed(250)
+k_levels=c(1:10)
+nofReplications=10
+nFolds=10
+indices=generateCVRuns(trainclass,nofReplications,nFolds,stratified=TRUE)
+cvresult=data.table()
+
+for(i in 1:11) {
+ 
+  testindices <- testsets[[i]]
+  trainindices <- trainsets[[i]]
+  
+  cvtrain=traindata[trainindices,]      
+  cvtest=traindata[testindices,]
+  
+    cvtrain = cbind(trainclass[trainindices],cvtrain)
+    
+       #Model is generated
+      multinomModel <- multinom(V1 ~.,data= cvtrain)
+      
+      #Probabilities for each class and the results are generated
+      predicted_scores <- predict (multinomModel, cvtest, "probs") # predict on new data
+      predicted_class <- predict (multinomModel, cvtest)
+      
+      #Confusion matrix and accuracy
+      confusion_matrix_multinom <- table(predicted_class, trainclass[testindices])
+      accuracy_multinom <- sum(predicted_class == trainclass[testindices])/length(trainclass[testindices])
+
+      cvresult=rbind(cvresult,data.table(Replication=i,Method='multinom',TestId=testindices,
+                                         Predictions=as.numeric(as.character(predicted_class)),Real=trainclass[testindices]))
+    
+  }   
+
+
+comparison <- cvresult[,list(Accu=mean(Predictions==Real)),by=list(Method)]
+comparison <- comparison[order(Accu)]
+comparison
 
 ##### Model 2: Multinomial Regression
 
@@ -163,9 +199,11 @@ prob_rearranged[,2] <- predicted_scores[,1]
 rps2mat <- RPS_matrix(prob_rearranged, t(results))
 rps2 <- mean(rps2mat)
 rps2
+
+
 ?multinom
 bugra_results <- rbind(bugra_results, data.table(day = i, method = j, sample = k, traindate = a, testdate = b, sample_no = g, time = time[1], accu = accuracy_multinom, rps = rps2))
-}}}}}}
+
 
 
 sub <- cbind(prob_rearranged, test_features$matchId, test_features$Unix_Date,test_features$Match_Result)
@@ -194,15 +232,17 @@ train1 <- cbind(train1,trainc1)
 ############
 
 # Inputs are generated from data files
-cols <- 2:51
-train1 <- traindata[,..cols]
-test1 <- testdata[,..cols]
+cols <- names(traindata)
+cbind(cols, 1:length(cols))
+cols <- names(traindata)[c(5:16,23:30,37:40,55,70,85,100,115)]
+traindata <- traindata[,..cols]
+testdata <- testdata[,..cols]
 train1 <- as.data.table(scale(train1))
 test1 <- as.data.table(scale(test1))
 
 
 #knn model is constructed. k is determined arbitrarily, no cross validation
-pred11 <- knn(train1,test1, trainclass, k = 95, prob = TRUE)
+pred11 <- knn(train1,test1, trainclass, k = 95)
 
 #confusion matrix and accuracy
 confusion_matrix_knn <- table(pred11,testclass)
@@ -234,6 +274,62 @@ rps1mat <- RPS_matrix(t(prob_rearranged),t(results))
 rps1 <- mean(rps1mat)
 rps1
 #Output of RPS_Matrix function
+
+### Discussion: cv'de random maçları kontrol ediyor. Bizim amacımız gelecek prediction'ı. bundan dolayı geçmiş data kullanarak gelecek maçları kontrol eden bir train test split yapmak gerek.
+
+set1 <- 1:200
+set3 <- 1:200
+set2 <- 201:250
+nrow(traindata)
+sets <- NULL
+trainsets <- NULL
+testsets <- NULL
+for(i in 1:11)
+{
+  trainsets[[i]] <- set3
+  testsets[[i]] <- set2
+  set1 <- set1 + 200
+  set3 <- c(set3,set1)
+  set2 <- set2 + 200
+}
+
+set.seed(122)
+k_levels=seq(10,125,by = 5)
+nofReplications=10
+nFolds=10
+indices=generateCVRuns(trainclass,nofReplications,nFolds,stratified=TRUE)
+cvresult=data.table()
+i = 1
+k <- NULL
+  for(i in 1:11) {
+   
+        testindices <- testsets[[i]]
+        trainindices <- trainsets[[i]]
+    
+      cvtrain=as.data.table(scale(traindata[trainindices,]))        
+      cvtest=as.data.table(scale(traindata[testindices,]))
+      
+      cvtrain[is.na(cvtrain)] <- 0
+      cvtest[is.na(cvtest)] <- 0
+      
+      
+      
+      for(y in 1:length(k_levels)){
+        param_k=k_levels[y]
+        predict_knn=knn(cvtrain, cvtest,trainclass[trainindices], k = param_k)
+        cvresult=rbind(cvresult,data.table(Replication=i,Method='knn',Klev=param_k,TestId=testindices,
+                                           Predictions=as.numeric(as.character(predict_knn)),Real=trainclass[testindices]))
+    }   
+  }    
+
+comparison <- cvresult[,list(Accu=mean(Predictions==Real)),by=list(Method,Klev)]
+comparison <- comparison[order(Accu)]
+comparison
+
+
+
+
+
 
 
 ########## End of Nearest Neighbor Analysis
@@ -346,6 +442,12 @@ rps6
 train5 <- cbind(traindata[,..cols],trainclass)
 test5 <- testdata[,..cols]
 
+names(traindata)
+
+pcadata <- traindata[,40:ncol(traindata)]
+pcares <- princomp(pcadata)
+summary(pcares)
+pcares$loadings[,1:2]
 
 gbm.model <- gbm(trainclass~., data = train5, n.trees = 100, interaction.depth = 1,
                         n.minobsinnode = 10, shrinkage =0.1, distribution = "multinomial")
@@ -396,3 +498,26 @@ probsvm[,3] <- probsvm1[,1]
 rps8 <- RPS_matrix(probsvm, t(results))
 rps8 <- mean(rps8)
 rps8
+
+
+
+pinnacle <- testdata[,c(93,108,123)]
+colnames(pinnacle) <- c("home","away","tie")
+
+pinnacle[,probHome:=1/home]
+pinnacle[,probAway:=1/away]
+pinnacle[,probTie:=1/tie]
+
+pinnacle[,totalProb:=probHome+probAway+probTie]
+
+pinnacle[,probHome:=probHome/totalProb]
+pinnacle[,probAway:=probAway/totalProb]
+pinnacle[,probTie:=probTie/totalProb]
+
+pinnacle=pinnacle[complete.cases(pinnacle)]
+pinnacle[,c("totalProb","home","away","tie"):=NULL]
+pinnacle <- pinnacle[,c("probHome","probTie","probAway")]
+
+rps_10 <- RPS_matrix(pinnacle, t(results))
+rps10 <- mean(rps_10)
+rps10

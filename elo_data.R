@@ -5,7 +5,6 @@ clubnames <- c("Tottenham", "AstonVilla", "Wolves","Bolton","Wigan","Sunderland"
                "ManUnited", "WestBrom","Birmingham","Everton","Stoke","WestHam", "Arsenal", "Newcastle","Fulham",
                "ManCity","Blackpool","QPR", "Swansea","Norwich","Reading" ,"Southampton","CrystalPalace","Hull",
               "Cardiff", "Leicester","Burnley","Bournemouth","Watford","Middlesbrough","Brighton","Huddersfield" )
-
 elo_data <- as.data.table(NULL)
 
 for (names in clubnames){
@@ -26,36 +25,25 @@ elo_data <- as.data.table(lapply(elo_data, function(v) {
 elo_data[Club=="man united", Club:= "manchester united"]
 elo_data[Club=="man city", Club:= "manchester city"]
 
+
 elo_data[,Diff:=To-From]
 n.times <- elo_data$Diff + 1
 elo_data <- elo_data[rep(seq_len(nrow(elo_data)),n.times)]
-elo_data[order(Club,From)]
-elo_data <- elo_data[,-c("To", "Diff")]
 
 
 
-for (i in 2:(nrow(elo_data))) {
-  if (elo_data$Elo[i] == elo_data$Elo[i-1]){
-    elo_data$From[i] = (elo_data$From[i-1] + 1)
+for(i in 1:28337)
+{
+  dates = NULL
+  if(min(elo_data[index==i]$From) != unique(elo_data[index==i]$To))
+  {
+  dates <- seq(as.Date(min(elo_data[index==i]$From)),as.Date(unique(elo_data[index==i]$To)), by="days")
+  elo_data[index==i]$From <- dates
   }
 }
 
+elo_data <- elo_data[,-c("To", "Diff")]
+elo_data <- elo_data[order(Club,From)]
 
-source('data_preprocessing.r')
-matches_data_path = "Files/df9b1196-e3cf-4cc7-9159-f236fe738215_matches.rds"
-matches_raw=readRDS(matches_data_path)
-matches <- matches_data_preprocessing(matches_raw)
+write.csv(elo_data, "C:/Users/Bugra/Documents/GitHub/match_mining/elo_data.csv" )
 
-setkey(matches, c("Home", "Match_Date"))
-setkey(elo_data, c("Club", "From"))
-
-matches <- merge(x=matches, y=elo_data, by.x = c("Home", "Match_Date"), by.y = c("Club", "From"), all.x=TRUE)
-matches$Home_ELO = matches$Elo
-matches[,Elo := NULL]
-
-setkeyv(matches, c("Away", "Match_Date"))
-setkeyv(elo_data, c("Club", "From"))
-
-matches <- merge(x=matches, y=elo_data, by.x = c("Away", "Match_Date"), by.y = c("Club", "From"), all.x=TRUE)
-matches$Away_ELO = matches$Elo
-matches[,Elo := NULL]

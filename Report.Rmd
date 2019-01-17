@@ -2,7 +2,7 @@
 title: "Project_Report"
 author: "Alim Bugra Cinar - Gulsah Akcakir"
 date: "7 January 2019"
-output: 
+output: html_document
 ---
 
 ```{r setup, include=FALSE}
@@ -15,28 +15,51 @@ Since sports betting market becoming more and more competitive, forecasting matc
 In this project, we were given historical information of English Premier League matches and odds given by different bookmakers. The aim was to provide better forecasts for 1x2 bets, using learning algorithms we have discussed during the semester. 
 We considered the problem as a multi-class (Away, Tie, Home) classification problem and applied proper algorithms to obtain better forecasting results.  At some point, we figured out that features we are using as crucial as the model we fit. Then, we tried to generate more relevant features that can improve our models’ performances. Although we applied and evaluated different algorithms, multinomial logistic regression was the outstanding one from the very beginning. Thus, at each round, we have submitted predictions resulted from our multinomial logistic regression model. 
 Features used for training and prediction gained from the provided data. To prevent irrelevant information, we only considered matches after 2012. Attribute information is below:
+
 Unix_Date:  unix date of the match
-  	Match_Hour: hour of the match (12 to 20)
-  	Match_Day: day of the match (1 to 7)
-  	Day_Diff: difference between teams’ # of days since last game played
-  	Home(Away)_Last_Yellow: number of yellow cards shown in the last game
-  	Home(Away)_Last_Red: number of red cards shown in the last game
- 	Home(Away)_Avg_Goal_Scored: average # of goals scored in the last 5 games 
- 	Home(Away)_Avg_HT_Goal_Scored: average # of goals scored until half time in the last 5 games
- 	Home(Away)_Avg_Win: percentage of wins in the last 5 games  
- 	Home(Away)_Avg_Tie: percentage of ties in the last 5 games 
- 	Home(Away)_Avg_Shots_Made: average # of shots in the last 5 games 
- 	Home(Away)_Avg_SoT_Made: average # of shots on target in the last 5 games 
- 	Home(Away)_Avg_Fouls_Committed: average # of fouls committed in the last 5 games 
- 	Home(Away)_Avg_Corners: average # of corners in the last 5 games
- 	Home(Away)_Avg_Goal_Diff: average of the last 5 games’ goals differences
- 	Home(Away)_Avg_HT_Goal_Diff: average of the last 5 games’ half time goals differences
- 	Home(Away)_Avg_Shot_Diff: average of the last 5 games’ shots differences
- 	Home(Away)_Avg_SoT_Diff: average of the last 5 games’ shots on target differences
- 	Home(Away)_Avg_Foul_Diff: average of the last 5 games’ fauls differences
- 	Home(Away)_Avg_Corner_Diff: average of the last 5 games’ corners differences
- 	distance: distance between the cities of home and away teams 
- 	Home(Away)_ELO: ELO rating of the team
+
+Match_Hour: hour of the match (12 to 20)
+
+Match_Day: day of the match (1 to 7)
+
+Day_Diff: difference between teams’ # of days since last game played
+
+Home(Away)_Last_Yellow: number of yellow cards shown in the last game
+
+Home(Away)_Last_Red: number of red cards shown in the last game
+
+Home(Away)_Avg_Goal_Scored: average # of goals scored in the last 5 games 
+
+Home(Away)_Avg_HT_Goal_Scored: average # of goals scored until half time in the last 5 games
+
+Home(Away)_Avg_Win: percentage of wins in the last 5 games  
+
+Home(Away)_Avg_Tie: percentage of ties in the last 5 games 
+
+Home(Away)_Avg_Shots_Made: average # of shots in the last 5 games 
+
+Home(Away)_Avg_SoT_Made: average # of shots on target in the last 5 games 
+
+Home(Away)_Avg_Fouls_Committed: average # of fouls committed in the last 5 games 
+
+Home(Away)_Avg_Corners: average # of corners in the last 5 games
+
+Home(Away)_Avg_Goal_Diff: average of the last 5 games’ goals differences
+
+Home(Away)_Avg_HT_Goal_Diff: average of the last 5 games’ half time goals differences
+
+Home(Away)_Avg_Shot_Diff: average of the last 5 games’ shots differences
+
+Home(Away)_Avg_SoT_Diff: average of the last 5 games’ shots on target differences
+
+Home(Away)_Avg_Foul_Diff: average of the last 5 games’ fauls differences
+
+Home(Away)_Avg_Corner_Diff: average of the last 5 games’ corners differences
+
+distance: distance between the cities of home and away teams 
+
+Home(Away)_ELO: ELO rating of the team
+
 Additionally, we considered both opening and closing odds, in type 1x2, from several bookmakers as predictors.
 
 
@@ -44,12 +67,13 @@ Additionally, we considered both opening and closing odds, in type 1x2, from sev
 # 2. Related Literature
 
 In this project, we mainly benefited from statistical learning techniques discussed in IE 582 class and “An Introduction to Statistical Learning - with Applications in R”[1] book. The classification algorithms we utilized are namely multinomial logistic regression, k-nearest neighbor classification, bagging, decision trees, random forests, boosting and support vector machines. Above mentioned techniques are implemented respectively by using multinom function of “nnet”[2] package, knn.predict function of “KODAMA”[3] package, bagging function of “adabag”[4] package, rpart function of “rpart”[5] package, randomForest function of “randomForest”[6] package, gbm function of “gbm”[7] package and lastly svm function of “e1071”[8] package. 
-	To best of our knowledge, the papers written in the result prediction area are mainly benefited from the same models. However, the main distinction occurs in the features used in the papers. Rosli et al.[9] uses features showing the performance of teams, such as goals scored in the half time and full time, shots made and shots on target, and corners for both home and away teams. Hvattum et al.[10] utilizes ELO ratings for score prediction. In the project we utilized the mentioned features in addition to the odds of the bookmakers.
+
+To best of our knowledge, the papers written in the result prediction area are mainly benefited from the same models. However, the main distinction occurs in the features used in the papers. Rosli et al.[9] uses features showing the performance of teams, such as goals scored in the half time and full time, shots made and shots on target, and corners for both home and away teams. Hvattum et al.[10] utilizes ELO ratings for score prediction. In the project we utilized the mentioned features in addition to the odds of the bookmakers.
 	
 
 # 3. Approach and Results
 
-```{r, include=FALSE}
+```{r, include=FALSE, eval=TRUE}
 require(data.table)
 require(anytime)
 require(scatterplot3d)
@@ -77,7 +101,7 @@ require(rpart)
 
 ### 3.1.1 Content of the Source Files
 
-```{r}
+```{r,include=TRUE, eval=TRUE}
 source('data_preprocessing.r')
 source('feature_extraction.r')
 source('performance_metrics.r')
@@ -85,7 +109,771 @@ source('match_processing.r')
 
 ```
 
-The functions above are used for data preprocessing. The content of the functions are described below.
+The source files above are used for data preprocessing. The content of the sources are described below.
+
+There are two functions in the data_preprocessing.r file, which is shown in the appendix 8.1. The first function "matches_data_preprocessing" takes raw match data. Raw data consists several types of team names (ie Manchester United as manchester-utd and manchester-united). The function firstly eliminates repeated names by standardizing the team names. Then, it adds the cities of the football clubs, which will be necessary for calculating distances between cities. After that, the function reformats the Unix Date to year-month-day format. Finally, the function produces result of the matches, and goals scored by each team from result information, which is included in the raw matches data in the form of "Home Score-Away Score".
+
+The second function is details_data_preprocessing and it produces the chosen odd details from raw odds data. In the raw odds data, several odds such as over-under, asian handicap etc. are included. The function produces the types of odds chosen by the user.
+
+feature_extraction.r file consists of a function named extract_features.openclose, and shown in the appendix 8.2. The function takes output of details_data_preprocessing function and melts the odds of each bookmaker. Additionally, as there are multiple odds determined by the bookmaker as time proceeds, each match has more two odds from the same bookmaker. The function reduces those odds into two namely open and close. Open odds and close odds are the first and the last odds determined by the bookmakers, and they are the output of the extract_features.openclose() function. 
+
+The third file used in the project is performance_metrics.r and shown in the appendix 8.3. This file contains two functions namely RPS_single and RPS_matrix. As their names imply, the first function produces an RPS score and the second function produces an RPS matrix which gives RPS scores for each match.
+
+The content of the match_processing.r file contains match_processing() function and takes the preprocessed matches data, average days and method for average calculations as inputs. The content is shown in the appendix 8.4. The aim of the function is to add several features described in the introduction part to the matches data. Average days and method of average are the inputs used for calculating the features such as average goals, average corners etc. They determine how many matches will be used for generating average information and which moving average method will be used for calculation. 
+
+Lastly, elo_data.r file contains the codes necessary for generating elo features and shown in appendix 8.5. The file firstly downloads precalculated elo data from the clubelo.com website and produces a .csv file used for elo feature extraction in the match_processing() function.
+
+### 3.1.2 Load Data and Preprocess
+
+```{r, include=FALSE, eval=TRUE, warning=FALSE}
+#save paths
+matches_data_path = "Files/df9b1196-e3cf-4cc7-9159-f236fe738215_matches.rds"
+odd_details_data_path = "Files/df9b1196-e3cf-4cc7-9159-f236fe738215_odd_details.rds"
+
+#train and test dates
+testStart=as.Date('2018-03-16')
+trainStart=as.Date('2011-09-15')
+rem_miss_threshold=0.01 #parameter for removing bookmaker odds with missing ratio greater than this threshold
+
+
+# read data
+city_distances <- read.csv("city_distances.csv")
+s_2018 <- as.data.table(read.csv("Files/2018_data.csv"))
+s_2017 <- as.data.table(read.csv("Files/2017_data.csv"))
+s_2016 <- as.data.table(read.csv("Files/2016_data.csv"))
+s_2015 <- as.data.table(read.csv("Files/2015_data.csv"))
+s_2014 <- as.data.table(read.csv("Files/2014_data.csv"))
+s_2013 <- as.data.table(read.csv("Files/2013_data.csv"))
+s_2012 <- as.data.table(read.csv("Files/2012_data.csv"))
+s_2011 <- as.data.table(read.csv("Files/2011_data.csv"))
+s_2010 <- as.data.table(read.csv("Files/2010_data.csv"))
+
+matches_raw=readRDS(matches_data_path)
+odd_details_raw=readRDS(odd_details_data_path)
+
+# preprocess matches
+#matched datapreprocessing function is edited, it adds unixdate and weekday columns
+
+matches=matches_data_preprocessing(matches_raw)
+
+
+
+additional_data <- rbind(s_2010[,1:23],s_2011[,1:23],s_2012[,1:23],s_2013[,1:23],s_2014[,1:23]
+                           ,s_2015[,1:23],s_2016[,1:23],s_2017[,1:23],s_2018[,1:23])
+additional_data$HomeTeam <- as.character(additional_data$HomeTeam)
+additional_data$AwayTeam <- as.character(additional_data$AwayTeam)
+additional_data$Date <- dmy(additional_data$Date)
+additional_data <- additional_data[complete.cases(additional_data)]
+
+names1 <- sort(unique(additional_data$HomeTeam))
+names2 <- sort(unique(matches$Home))
+names3 <- cbind(names1,names2)
+
+for(i in 1:nrow(names3))
+{
+  additional_data[HomeTeam == names3[i,1]]$HomeTeam <- names3[i,2]
+  additional_data[AwayTeam == names3[i,1]]$AwayTeam <- names3[i,2]
+  
+}
+
+additional_data <- additional_data[,Div:=NULL]
+
+col_names <- c("Date", "Home", "Away", "Full Time Home Team Goals",
+               "Full Time Away Team Goals", "Full Time Result" ,"Half Time Home Team Goals",
+               "Half Time Away Team Goals", "Half Time Result", "Referee", "Home Team Shots",
+               "Away Team Shots", "Home Team Shots on Target", "Away Team Shots on Target",
+               "Home Team Fouls Committed", "Away Team Fouls Committed", "Home Team Corners",
+               "Away Team Corners", "Home Team Yellow Cards", "Away Team Yellow Cards",
+               "Home Team Red Cards", "Away Team Red Cards")
+
+colnames(additional_data) <- col_names
+
+comp_data <- merge(matches, additional_data, by.x = c("Match_Date", "Home", "Away"), by.y  = c("Date", "Home", "Away"), all.x = TRUE)
+
+```
+
+Firstly, matches data, odds data and the details of the matches are loaded, but the codes are not included for the simplicity. Then, by using the functions in the sources, the data become ready for further analysis below.  
+
+```{r, include=TRUE, eval = TRUE, warning=FALSE}
+
+## Add extra features to matches (winning average, score average, days before the match)
+matches <- match_processing(comp_data, 3, "t")
+
+# preprocess odd data
+odd_details=details_data_preprocessing(odd_details_raw,matches,which_bets = c("1x2"))
+
+# extract open and close odd type features from multiple bookmakers
+features=extract_features.openclose(matches,odd_details,pMissThreshold=rem_miss_threshold,trainStart,testStart)
+
+# divide data based on the provided dates 
+train_features=features[Match_Date>=trainStart & Match_Date<testStart] 
+test_features=features[Match_Date>=testStart] 
+
+#keep complete cases
+train_features <- train_features[complete.cases(train_features)]
+test_features <- test_features[complete.cases(test_features)]
+
+#Seperate Results and Data, remove matchID, MatchDate and LeagueID columns
+trainclass <- train_features$Match_Result
+traindata <- train_features[,-c(1,2,6)]
+testclass <- test_features$Match_Result
+testdata <- test_features[,-c(1,2,6)]
+
+#Results as numeric values
+trainclass <- (trainclass == "Home")*1 + (trainclass == "Away")*2
+testclass <- (testclass == "Home")*1 + (testclass == "Away")*2
+
+#Matrix of Results to be used as an input to the RPS function
+results <- matrix(1:(length(testclass)*3), 3)
+results[1,] <- (testclass == 1)*1
+results[2,] <- (testclass == 0)*1
+results[3,] <- (testclass == 2)*1
+
+cols <- names(traindata)
+
+```
+
+
+
+
+## 3.2 Prediction Models
+
+### 3.2.1 Multinomial Logistic Regression
+
+The first and best performing model in the project is multinomial regression. The below chunk contains the codes used for implementation. Firstly, training and test data will be used for prediction is prepared. By selecting cols variable, we can customize the feature selection in the model. For illustration purposes all features are used in the prediction. We are giving training results and training data as inputs for multinom function. The, we predict the probability scores and classes by using the model. The confusion matrix and accuracy are calculated by using the clasees and probabilities are used for RPS calculation.
+
+
+```{r,include=TRUE, eval=TRUE}
+#Model inputs determined
+train2 <- traindata[,..cols]
+test2 <- testdata[,..cols]
+
+#Multinomial model requires results to be in the data
+train2$Match_Result <- trainclass
+test2$Match_Result <- testclass
+
+#Model is generated
+multinomModel <- multinom(Match_Result ~ ., data=train2)
+
+#Probabilities for each class and the results are generated
+predicted_scores <- predict (multinomModel, test2, "probs") # predict on new data
+predicted_class <- predict (multinomModel, test2)
+
+#Confusion matrix and accuracy
+confusion_matrix_multinom <- table(predicted_class, testclass)
+confusion_matrix_multinom
+accuracy_multinom <- sum(predicted_class == testclass)/length(testclass)
+accuracy_multinom
+
+prob_rearranged <- predicted_scores
+prob_rearranged[,1] <- predicted_scores[,2]
+prob_rearranged[,2] <- predicted_scores[,1]
+
+
+##  average RPS and RPS Matrix
+rps2mat <- RPS_matrix(prob_rearranged, t(results))
+rps2 <- mean(rps2mat)
+
+rps2
+
+output <- data.table(Method = "Multinomial Log. Reg.", Accuracy = accuracy_multinom, RPS = rps2)
+
+
+```
+
+
+
+## 3.2.2 K-Nearest Neighbors
+
+KNN model uses distance matrix as input, therefore firstly the distance matrix is generated. After that the predictions are made according to the similarity to majority. Finally, the class and probability scores are used for confusion matrix, accuracy and average RPS calculations. Results are given below. 
+
+```{r,include=TRUE, eval=TRUE}
+train1 <- traindata[,..cols]
+test1 <- testdata[,..cols]
+train1 <- as.data.table(scale(train1))
+test1 <- as.data.table(scale(test1))
+
+
+
+# Bind train and test data to be used as an input in KODAMA's knn.dist function
+x <- rbind(train1,test1)
+
+#Distances are calculated
+kdist <- KODAMA::knn.dist(x)
+
+#Prediction is made
+pred <- KODAMA::knn.predict(1:nrow(train1), (nrow(train1)+1):nrow(x), trainclass, kdist, k=95, agg.meth = "majority")
+
+# display the confusion matrix and accuracy
+confusion_matrix_knn_kodama <- table(pred,testclass)
+confusion_matrix_knn_kodama
+accuracy_knn_kodama <- sum(pred==testclass)/length(testclass)
+accuracy_knn_kodama
+# view probabilities (all class probabilities are returned)
+prob <- KODAMA::knn.probability(1:nrow(train1), (nrow(train1)+1):nrow(x), trainclass, kdist, k=95)
+
+prob_rearranged <- prob
+prob_rearranged[1,] <- prob[2,]
+prob_rearranged[2,] <- prob[1,]
+
+# RPS Results are calculated
+rps1mat <- RPS_matrix(t(prob_rearranged),t(results))
+rps1 <- mean(rps1mat)
+rps1
+
+output <- rbind(output, data.table(Method = "KNN", Accuracy = accuracy_knn_kodama, RPS = rps1))
+```
+
+
+## 3.2.3 Bagging
+
+Prediction are made by using bagging in the below chunk. According to the probability predictions, RPS scores are calculated.
+
+```{r,include=TRUE, eval=TRUE}
+train4 <- traindata[,..cols]
+test4 <- testdata[,..cols]
+train4 <- as.data.table(scale(train4))
+test4 <- as.data.table(scale(test4))
+
+#Bagging Model requires results to be in input data
+train4$Match_Result <- as.factor(trainclass)
+test4$Match_Result <- as.factor(testclass)
+
+#Model is generated
+match.bagging <- bagging(Match_Result ~ ., data = train4,boos = TRUE, mfinal = 10, control = (minsplit = 0))
+
+
+#Predictions are made
+match.predbegging <- predict.bagging(match.bagging, newdata = test4)
+
+#Probabilities for each class
+baging_probs <- t(match.predbegging$prob)
+baging.class <- apply(match.predbegging$prob, 1, which.max)
+baging.class <- (baging.class==2)*1 + (baging.class==3)*2 + (baging.class==1)*0
+bag_confmat <- table(baging.class,testclass)
+bag_acc <- sum(baging.class==testclass)/length(testclass)
+# Average RPS and RPS Matrix
+
+prob_rearranged <- baging_probs
+prob_rearranged[1,] <- baging_probs[2,]
+prob_rearranged[2,] <- baging_probs[1,]
+
+rps4mat <- RPS_matrix(t(prob_rearranged),t(results))
+rps4 <- mean(rps4mat)
+rps4
+
+output <- rbind(output, data.table(Method = "Bagging", Accuracy = bag_acc, RPS = rps4))
+
+```
+
+## 3.2.4 Decision Tree
+
+Next chunk utilizes decision trees for prediction and calculation of confusion matrix, accuracy and RPS scores.
+
+```{r,include=TRUE, eval=TRUE}
+
+train5 <- traindata[,..cols]
+test5 <- testdata[,..cols]
+train5 <- as.data.table(scale(train5))
+test5 <- as.data.table(scale(test5))
+test5class <- test_features$Match_Result
+train5 <- cbind(train_features$Match_Result
+,train5)
+colnames(train5)[1] <- "Match_Class"
+
+
+tree.match <- rpart(Match_Class~., train5)
+tree.pred <- predict(tree.match, test5, type = "class")
+dt_conf_mat <- table(tree.pred,test5class)
+
+dt_acc <- sum(tree.pred==test5class)/nrow(test5)
+
+cv_results <- as.data.table(xpred.rpart(tree.match))
+
+which.min(tree.match$cptable)
+
+tree.prune <- prune(tree.match, cp = 0.01)
+tree_probs <- as.data.table(predict(tree.prune, test5))
+
+tprobs <- t(tree_probs)
+tprobs[1,] <- t(tree_probs[,2])
+tprobs[2,] <- t(tree_probs[,3])
+tprobs[3,] <- t(tree_probs[,1])
+
+tprobs <- t(tprobs)
+
+rps5 <- RPS_matrix(tprobs,t(results))
+rps5 <- mean(rps5)
+rps5
+
+output <- rbind(output, data.table(Method = "Decision Tree", Accuracy = dt_acc, RPS = rps5))
+```
+
+
+## 3.2.5 Random Forest
+
+Random forests are utilized below for class and probability predictions. Confusion matrix, accuracy and average RPS scores are calculated accordingly.
+
+```{r,include=TRUE, eval=TRUE}
+
+train5 <- traindata[,..cols]
+test5 <- testdata[,..cols]
+train5 <- as.data.table(scale(train5))
+test5 <- as.data.table(scale(test5))
+train5class <- as.factor(train_features$Match_Result)
+
+rf_matches <- randomForest(train5, y = train5class, ntree = 1000, proximity = TRUE)
+prob_classes <- predict(rf_matches, test5)
+rf_conf_mat <- table(prob_classes, test5class)
+rf_acc <- sum(tree.pred==test5class)/nrow(test5)
+
+probs_rf <- predict(rf_matches,test5, type = "prob")
+
+probs5 <- probs_rf
+probs5[,1] <- probs_rf[,2]
+probs5[,2] <- probs_rf[,3]
+probs5[,3] <- probs_rf[,1]
+
+
+rps6 <- RPS_matrix(probs5, t(results))
+rps6 <- mean(rps6)
+rps6
+output <- rbind(output, data.table(Method = "Random Forest", Accuracy = rf_acc, RPS = rps6))
+
+```
+
+## 3.2.6 Boosting
+
+Boosting method is used for predictions below. Accuracy, confusion matrix and average RPS scores are calculated by using the output of the model.
+
+```{r,include=TRUE, eval=TRUE}
+
+train5 <- cbind(traindata[,..cols],trainclass)
+test5 <- testdata[,..cols]
+
+
+gbm.model <- gbm(trainclass~., data = train5, n.trees = 100, interaction.depth = 1,
+                        n.minobsinnode = 10, shrinkage =0.1, distribution = "multinomial")
+gbm.prob <- predict(gbm.model, test5, n.trees = 100, type = "response")
+gbm.pred <- apply(gbm.prob, 1, which.max)
+boost_confmat <- table(gbm.pred-1, testclass)
+boost_acc <-sum((gbm.pred-1)==testclass)/nrow(test5)
+
+probboost <- as.data.frame(gbm.prob)
+probboost2 <- as.data.frame(gbm.prob)
+probboost[,1] <- probboost2[,2]
+probboost[,2] <- probboost2[,1]
+
+rps7 <- RPS_matrix(probboost, t(results))
+rps7 <- mean(rps7)
+rps7
+output <- rbind(output, data.table(Method = "Boosting", Accuracy = boost_acc, RPS = rps7))
+
+
+```
+
+## 3.2.7 Support Vector Machines
+
+Support vector machine implementation is used for calculation of the performance metrics below.
+
+```{r,include=TRUE, eval=TRUE}
+
+train6 <- traindata[,..cols]
+test6 <- testdata[,..cols]
+trainlabel <- as.factor(trainclass)
+testlabel <- as.factor(testclass)
+
+train6 <- data.frame(train6,trainlabel)
+
+tune.out <- tune(svm, trainlabel~., data = train6, kernel = "radial", 
+                 ranges = list(cost=c(0.001 , 0.01, 0.1, 1,5,10,100)))
+
+svmfit <- svm(trainlabel~., data = train6, kernel = "radial", cost = 0.1, scale = TRUE, prob = TRUE)
+bestsvm <- tune.out$best.model
+
+svmpred <- predict(bestsvm, test6)
+svm_confmat <- table(svmpred,testlabel)
+svm_acc <- sum(svmpred==testlabel)/nrow(test6)
+
+svmprob <- predict(svmfit, test6, probability = TRUE)
+
+probsvm1 <- attributes(svmprob)$probabilities
+probsvm <- probsvm1
+probsvm[,1] <- probsvm1[,3]
+probsvm[,3] <- probsvm1[,1]
+
+rps8 <- RPS_matrix(probsvm, t(results))
+rps8 <- mean(rps8)
+rps8
+output <- rbind(output, data.table(Method = "SVM", Accuracy = svm_acc, RPS = rps8))
+
+
+```
+
+To compare our results, we calculated an RPS score for the bookmaker Pinnacle. Its results are also shown below.
+
+```{r,include=TRUE, eval=TRUE}
+pinnacle <- testdata[,c(93,108,123)]
+colnames(pinnacle) <- c("home","away","tie")
+
+pinnacle[,probHome:=1/home]
+pinnacle[,probAway:=1/away]
+pinnacle[,probTie:=1/tie]
+
+pinnacle[,totalProb:=probHome+probAway+probTie]
+
+pinnacle[,probHome:=probHome/totalProb]
+pinnacle[,probAway:=probAway/totalProb]
+pinnacle[,probTie:=probTie/totalProb]
+
+pinnacle=pinnacle[complete.cases(pinnacle)]
+pinnacle[,c("totalProb","home","away","tie"):=NULL]
+pinnacle <- pinnacle[,c("probHome","probTie","probAway")]
+
+rps_10 <- RPS_matrix(pinnacle, t(results))
+rps10 <- mean(rps_10)
+rps10
+
+pinnacle_pred <- apply(pinnacle, 1, which.max)
+pinnacle_pred <- (pinnacle_pred==3)*2 +  (pinnacle_pred==1)*1
+pinn_confmat <- table(pinnacle_pred, testclass)
+pinn_acc <-sum(pinnacle_pred==testclass)/nrow(test5)
+output <- rbind(output, data.table(Method = "Pinnacle", Accuracy = pinn_acc, RPS = rps10))
+
+```
+
+
+
+# 4. Results and Discussion
+
+```{r,include=TRUE, eval=TRUE}
+cols
+output
+
+```
+
+The results shown above are generated by using all of the features.The features contains all the columns generated by several functions described in the above sections and odds of the all bookmakers. However, some of those features do not contribute to the predictions well, therefore, by eliminating unnecessary columns rps scores can be lowered. According to our analysis throughout the submissions most of the bookmakers generate similar odds to the matches, therefore, using all odds is not an effective method. Therefore, reducing number of bookmakers is a good idea. To decide which bookmakers to keep, we made an PCA analysis on bookmakers data.
+
+```{r,include=TRUE, eval=TRUE}
+pcadata <- traindata[,40:ncol(traindata)]
+pcares <- princomp(pcadata)
+summary(pcares)
+pcares$loadings[,1:2]
+```
+
+As it can be seen above first two components of the PCA explains 96% of the variance. However, the contributions of the bookmakers to first two components are relatively same. Therefore, PCA analysis did not help us which bookmakers to keep. We randomly decided to keep a bookmaker, which is Pinnacle. Additionally, we determined some of the features which are not performing well by using random selection among features. The final selection of features consist of Last_Red, Avg_Goal_Scored, Avg_Win, Avg_Sot_Made, Avg_Corners, and ELO for both home and away teams. Additionally, we kept distance data as well. The results of the selection are shown below.
+
+
+```{r,include=FALSE, eval=TRUE}
+cols <- names(traindata)
+cols <- cols[c(6,8,9,11,14,16,23,25,28,30,37,38,39,48,63,78,93,108,123)]
+```
+
+
+
+```{r,include=FALSE, eval=TRUE}
+#Model inputs determined
+train2 <- traindata[,..cols]
+test2 <- testdata[,..cols]
+
+#Multinomial model requires results to be in the data
+train2$Match_Result <- trainclass
+test2$Match_Result <- testclass
+
+#Model is generated
+multinomModel <- multinom(Match_Result ~ ., data=train2)
+
+#Probabilities for each class and the results are generated
+predicted_scores <- predict (multinomModel, test2, "probs") # predict on new data
+predicted_class <- predict (multinomModel, test2)
+
+#Confusion matrix and accuracy
+confusion_matrix_multinom <- table(predicted_class, testclass)
+confusion_matrix_multinom
+accuracy_multinom <- sum(predicted_class == testclass)/length(testclass)
+accuracy_multinom
+
+prob_rearranged <- predicted_scores
+prob_rearranged[,1] <- predicted_scores[,2]
+prob_rearranged[,2] <- predicted_scores[,1]
+
+
+##  average RPS and RPS Matrix
+rps2mat <- RPS_matrix(prob_rearranged, t(results))
+rps2 <- mean(rps2mat)
+
+rps2
+
+output2 <- data.table(Method = "Multinomial Log. Reg.2", Accuracy = accuracy_multinom, RPS = rps2)
+
+
+```
+
+
+
+
+```{r,include=FALSE, eval=TRUE}
+train1 <- traindata[,..cols]
+test1 <- testdata[,..cols]
+train1 <- as.data.table(scale(train1))
+test1 <- as.data.table(scale(test1))
+
+
+
+# Bind train and test data to be used as an input in KODAMA's knn.dist function
+x <- rbind(train1,test1)
+
+#Distances are calculated
+kdist <- KODAMA::knn.dist(x)
+
+#Prediction is made
+pred <- KODAMA::knn.predict(1:nrow(train1), (nrow(train1)+1):nrow(x), trainclass, kdist, k=95, agg.meth = "majority")
+
+# display the confusion matrix and accuracy
+confusion_matrix_knn_kodama <- table(pred,testclass)
+confusion_matrix_knn_kodama
+accuracy_knn_kodama <- sum(pred==testclass)/length(testclass)
+accuracy_knn_kodama
+# view probabilities (all class probabilities are returned)
+prob <- KODAMA::knn.probability(1:nrow(train1), (nrow(train1)+1):nrow(x), trainclass, kdist, k=95)
+
+prob_rearranged <- prob
+prob_rearranged[1,] <- prob[2,]
+prob_rearranged[2,] <- prob[1,]
+
+# RPS Results are calculated
+rps1mat <- RPS_matrix(t(prob_rearranged),t(results))
+rps1 <- mean(rps1mat)
+rps1
+
+output2 <- rbind(output2, data.table(Method = "KNN2", Accuracy = accuracy_knn_kodama, RPS = rps1))
+```
+
+
+
+```{r,include=FALSE, eval=TRUE}
+train4 <- traindata[,..cols]
+test4 <- testdata[,..cols]
+train4 <- as.data.table(scale(train4))
+test4 <- as.data.table(scale(test4))
+
+#Bagging Model requires results to be in input data
+train4$Match_Result <- as.factor(trainclass)
+test4$Match_Result <- as.factor(testclass)
+
+#Model is generated
+match.bagging <- bagging(Match_Result ~ ., data = train4,boos = TRUE, mfinal = 10, control = (minsplit = 0))
+
+
+#Predictions are made
+match.predbegging <- predict.bagging(match.bagging, newdata = test4)
+
+#Probabilities for each class
+baging_probs <- t(match.predbegging$prob)
+baging.class <- apply(match.predbegging$prob, 1, which.max)
+baging.class <- (baging.class==2)*1 + (baging.class==3)*2 + (baging.class==1)*0
+bag_confmat <- table(baging.class,testclass)
+bag_acc <- sum(baging.class==testclass)/length(testclass)
+# Average RPS and RPS Matrix
+
+prob_rearranged <- baging_probs
+prob_rearranged[1,] <- baging_probs[2,]
+prob_rearranged[2,] <- baging_probs[1,]
+
+rps4mat <- RPS_matrix(t(prob_rearranged),t(results))
+rps4 <- mean(rps4mat)
+rps4
+
+output2 <- rbind(output2, data.table(Method = "Bagging2", Accuracy = bag_acc, RPS = rps4))
+
+```
+
+
+```{r,include=FALSE, eval=TRUE}
+
+train5 <- traindata[,..cols]
+test5 <- testdata[,..cols]
+train5 <- as.data.table(scale(train5))
+test5 <- as.data.table(scale(test5))
+test5class <- test_features$Match_Result
+train5 <- cbind(train_features$Match_Result
+,train5)
+colnames(train5)[1] <- "Match_Class"
+
+
+tree.match <- rpart(Match_Class~., train5)
+tree.pred <- predict(tree.match, test5, type = "class")
+dt_conf_mat <- table(tree.pred,test5class)
+
+dt_acc <- sum(tree.pred==test5class)/nrow(test5)
+
+cv_results <- as.data.table(xpred.rpart(tree.match))
+
+which.min(tree.match$cptable)
+
+tree.prune <- prune(tree.match, cp = 0.01)
+tree_probs <- as.data.table(predict(tree.prune, test5))
+
+tprobs <- t(tree_probs)
+tprobs[1,] <- t(tree_probs[,2])
+tprobs[2,] <- t(tree_probs[,3])
+tprobs[3,] <- t(tree_probs[,1])
+
+tprobs <- t(tprobs)
+
+rps5 <- RPS_matrix(tprobs,t(results))
+rps5 <- mean(rps5)
+rps5
+
+output2 <- rbind(output2, data.table(Method = "Decision Tree2", Accuracy = dt_acc, RPS = rps5))
+```
+
+
+
+```{r,include=FALSE, eval=TRUE}
+
+train5 <- traindata[,..cols]
+test5 <- testdata[,..cols]
+train5 <- as.data.table(scale(train5))
+test5 <- as.data.table(scale(test5))
+train5class <- as.factor(train_features$Match_Result)
+
+rf_matches <- randomForest(train5, y = train5class, ntree = 1000, proximity = TRUE)
+prob_classes <- predict(rf_matches, test5)
+rf_conf_mat <- table(prob_classes, test5class)
+rf_acc <- sum(tree.pred==test5class)/nrow(test5)
+
+probs_rf <- predict(rf_matches,test5, type = "prob")
+
+probs5 <- probs_rf
+probs5[,1] <- probs_rf[,2]
+probs5[,2] <- probs_rf[,3]
+probs5[,3] <- probs_rf[,1]
+
+
+rps6 <- RPS_matrix(probs5, t(results))
+rps6 <- mean(rps6)
+rps6
+output2 <- rbind(output2, data.table(Method = "Random Forest2", Accuracy = rf_acc, RPS = rps6))
+
+```
+
+
+```{r,include=FALSE, eval=TRUE}
+
+train5 <- cbind(traindata[,..cols],trainclass)
+test5 <- testdata[,..cols]
+
+
+gbm.model <- gbm(trainclass~., data = train5, n.trees = 100, interaction.depth = 1,
+                        n.minobsinnode = 10, shrinkage =0.1, distribution = "multinomial")
+gbm.prob <- predict(gbm.model, test5, n.trees = 100, type = "response")
+gbm.pred <- apply(gbm.prob, 1, which.max)
+boost_confmat <- table(gbm.pred-1, testclass)
+boost_acc <-sum((gbm.pred-1)==testclass)/nrow(test5)
+
+probboost <- as.data.frame(gbm.prob)
+probboost2 <- as.data.frame(gbm.prob)
+probboost[,1] <- probboost2[,2]
+probboost[,2] <- probboost2[,1]
+
+rps7 <- RPS_matrix(probboost, t(results))
+rps7 <- mean(rps7)
+rps7
+output2 <- rbind(output2, data.table(Method = "Boosting2", Accuracy = boost_acc, RPS = rps7))
+
+
+```
+
+
+
+```{r,include=FALSE, eval=TRUE}
+
+train6 <- traindata[,..cols]
+test6 <- testdata[,..cols]
+trainlabel <- as.factor(trainclass)
+testlabel <- as.factor(testclass)
+
+train6 <- data.frame(train6,trainlabel)
+
+tune.out <- tune(svm, trainlabel~., data = train6, kernel = "radial", 
+                 ranges = list(cost=c(0.001 , 0.01, 0.1, 1,5,10,100)))
+
+svmfit <- svm(trainlabel~., data = train6, kernel = "radial", cost = 0.1, scale = TRUE, prob = TRUE)
+bestsvm <- tune.out$best.model
+
+svmpred <- predict(bestsvm, test6)
+svm_confmat <- table(svmpred,testlabel)
+svm_acc <- sum(svmpred==testlabel)/nrow(test6)
+
+svmprob <- predict(svmfit, test6, probability = TRUE)
+
+probsvm1 <- attributes(svmprob)$probabilities
+probsvm <- probsvm1
+probsvm[,1] <- probsvm1[,3]
+probsvm[,3] <- probsvm1[,1]
+
+rps8 <- RPS_matrix(probsvm, t(results))
+rps8 <- mean(rps8)
+rps8
+output2 <- rbind(output2, data.table(Method = "SVM2", Accuracy = svm_acc, RPS = rps8))
+
+
+```
+
+
+
+```{r}
+output <- rbind(output,output2)
+output[order(RPS)]
+```
+
+
+According to the results shown above table, firstly there is no correlation between prediction accuracy and RPS. The reason is accuracy computes the ratio of correctly predicted matches to all matches, while rps is based on probabilities assigned to each class. Additionally, feature selection can decrease RPS, however, it seems it has no positive effect on prediction accuracy. For instance, the feature selection decreased RPS of multinomial logistic regression model in the example illustrated. However, it increased RPS of bagging. Throughout the project, as the standard multinomial model performed best among all models, we focused on its performance and the ways to increase it further. Feature selection method worked well for that aim. One other important result to see is that the multinomial model outperforms Pinnacle in the example. However, even though generally this was the case, our submmissions' overall average performance was under Pinnacle. To conclude we can say that based on our experience, by considering the RPS performance and computational speed, standard multinomial model fits best among all models that we implemented.
+
+
+
+# 5. Conclusions and Future Work
+
+In brief, during the time we had worked on this project, we implemented different learning algorithms for the given problem and we tried to improve our model’s forecasting performance with various arrangements. Since the response values stand in relation to each other in a ranked fashion, it is possible to said that the problem considered is actually an ordinal regression problem. Thus, one can improve the model performance by taking the nature of the target class into consideration. We may expect ordinal logistic regression to have a better performance for this specific task. Moreover, we observed that feature engineering is one of the key points when dealing with sports outcomes. Therefore, one should aim finding the most important predictor variables (features) that explains major part of variance of the response variable in order to build high performing models.
+
+# 6. Code 
+
+https://github.com/bgrcnr/match_mining
+
+# 7. References
+
+[1] James, Gareth, et al. An introduction to statistical learning. Vol. 112. New York: springer, 2013.
+
+[2] "nnet - The R Project for Statistical Computing."
+https://cran.r-project.org/web/packages/nnet/nnet.pdf. Access Date: 6 Jan. 2019.
+
+[3] "CRAN - Package KODAMA." 18 Oct. 2018, https://cran.r-project.org/package=KODAMA. Eriþim
+tarihi: 6 Jan. 2019.
+
+[4] "Package 'adabag' - The R Project for Statistical Computing." 14 Oct. 2015,
+https://cran.r-project.org/web/packages/adabag/adabag.pdf. Access Date: 6 Jan. 2019.
+
+[5] "Package 'rpart' - The R Project for Statistical Computing."
+https://cran.r-project.org/web/packages/rpart/rpart.pdf. Access Date: 6 Jan. 2019.
+
+[6] "Package 'randomForest' - The R Project for Statistical Computing."
+https://cran.r-project.org/web/packages/randomForest/randomForest.pdf. Access Date: 6 Jan. 2019.
+
+[7] "Package 'gbm' - The R Project for Statistical Computing." 16 Sep. 2018,
+https://cran.r-project.org/web/packages/gbm/gbm.pdf. Access Date: 6 Jan. 2019.
+
+[8] "e1071 - The R Project for Statistical Computing." 28 Jul. 2018,
+https://cran.r-project.org/web/packages/e1071/e1071.pdf. Access Date: 6 Jan. 2019.
+
+[9] Rosli, Che Mohamad Firdaus Che Mohd, et al. "A Comparative Study of Data Mining Techniques on Football Match Prediction." Journal of Physics: Conference Series. Vol. 1020. No. 1. IOP Publishing, 2018.
+
+[10] Hvattum, Lars Magnus, and Halvard Arntzen. "Using ELO ratings for match result prediction in association football." International Journal of forecasting 26.3 (2010): 460-470.
+
+
+# 8. Appendices
+
+## 8.1 data_preprocessing.r
 
 
 ```{r, include=TRUE, eval=FALSE}
@@ -217,9 +1005,9 @@ details_data_preprocessing <- function(data,matches,which_bets=c('1x2'),remove_b
 
 ```
 
-There are two functions in the data_preprocessing.r file. The first function "matches_data_preprocessing" takes raw match data. Raw data consists several types of team names (ie Manchester United as manchester-utd and manchester-united). The function firstly eliminates repeated names by standardizing the team names. Then, it adds the cities of the football clubs, which will be necessary for calculating distances between cities. After that, the function reformats the Unix Date to year-month-day format. Finally, the function produces result of the matches, and goals scored by each team from result information, which is included in the raw matches data in the form of "Home Score-Away Score".
 
-The second function is details_data_preprocessing and it produces the chosen odd details from raw odds data. In the raw odds data, several odds such as over-under, asian handicap etc. are included. The function produces the types of odds chosen by the user.
+## 8.2 feature_selection.r
+
 
 ```{r, include = TRUE, eval = FALSE}
 #' Feature Extraction
@@ -272,7 +1060,9 @@ extract_features.openclose <- function(matches,odd_details,pMissThreshold=0.01,t
 
 ```
 
-feature_extraction.r file consists of a function named extract_features.openclose. The function takes output of details_data_preprocessing function and melts the odds of each bookmaker. Additionally, as there are multiple odds determined by the bookmaker as time proceeds, each match has more two odds from the same bookmaker. The function reduces those odds into two namely open and close. Open odds and close odds are the first and the last odds determined by the bookmakers, and they are the output of the extract_features.openclose() function. 
+
+## 8.3 performance_metrics.r
+
 
 ```{r, include=TRUE,eval=FALSE}
 #' Performance Metric: Ranked Probability Score
@@ -299,7 +1089,8 @@ RPS_matrix<- function(probs,outcomes){
 
 ```
 
-The third file used in the project is probability_metrics.r. This file contains two functions namely RPS_single and RPS_matrix. As their names imply, the first function produces an RPS score and the second function produces an RPS matrix which gives RPS scores for each match.
+## 8.4 match_processing.r
+
 
 ```{r, include=TRUE, eval=FALSE}
 match_processing <- function(data, avg_days, avg_method)
@@ -488,7 +1279,8 @@ match_processing <- function(data, avg_days, avg_method)
 
 ```
 
-The above chunk contains the content of the match_processing.r file. The file contains match_processing() function and takes the preprocessed matches data, average days and method for average calculations as inputs. The aim of the function is to add several features described in the introduction part to the matches data. Average days and method of average are the inputs used for calculating the features such as average goals, average corners etc. They determine how many matches will be used for generating average information and which moving average method will be used for calculation. 
+
+## 8.5 elo_data.r
 
 
 ```{r, include=TRUE,eval=FALSE}
@@ -539,400 +1331,3 @@ write.csv(elo_data, "elo_data.csv")
 
 
 ```
-
-Lastly, the chunk above contains the codes necessary for generating elo features. The chunk firstly downloads precalculated elo data from the clubelo.com website and produces a .csv file used for elo feature extraction in the match_processing() function. As it is used only once for generating elo_data.csv, it is not included in the rest of the codes.
-
-
-### 3.1.2 Load Data and Preprocess
-
-```{r, include=false, eval=TRUE}
-#save paths
-matches_data_path = "Files/df9b1196-e3cf-4cc7-9159-f236fe738215_matches.rds"
-odd_details_data_path = "Files/df9b1196-e3cf-4cc7-9159-f236fe738215_odd_details.rds"
-
-#train and test dates
-testStart=as.Date('2018-03-16')
-trainStart=as.Date('2011-09-15')
-rem_miss_threshold=0.01 #parameter for removing bookmaker odds with missing ratio greater than this threshold
-
-
-# read data
-city_distances <- read.csv("city_distances.csv")
-s_2018 <- as.data.table(read.csv("Files/2018_data.csv"))
-s_2017 <- as.data.table(read.csv("Files/2017_data.csv"))
-s_2016 <- as.data.table(read.csv("Files/2016_data.csv"))
-s_2015 <- as.data.table(read.csv("Files/2015_data.csv"))
-s_2014 <- as.data.table(read.csv("Files/2014_data.csv"))
-s_2013 <- as.data.table(read.csv("Files/2013_data.csv"))
-s_2012 <- as.data.table(read.csv("Files/2012_data.csv"))
-s_2011 <- as.data.table(read.csv("Files/2011_data.csv"))
-s_2010 <- as.data.table(read.csv("Files/2010_data.csv"))
-
-matches_raw=readRDS(matches_data_path)
-odd_details_raw=readRDS(odd_details_data_path)
-
-# preprocess matches
-#matched datapreprocessing function is edited, it adds unixdate and weekday columns
-
-matches=matches_data_preprocessing(matches_raw)
-
-
-
-additional_data <- rbind(s_2010[,1:23],s_2011[,1:23],s_2012[,1:23],s_2013[,1:23],s_2014[,1:23]
-                           ,s_2015[,1:23],s_2016[,1:23],s_2017[,1:23],s_2018[,1:23])
-additional_data$HomeTeam <- as.character(additional_data$HomeTeam)
-additional_data$AwayTeam <- as.character(additional_data$AwayTeam)
-additional_data$Date <- dmy(additional_data$Date)
-additional_data <- additional_data[complete.cases(additional_data)]
-
-names1 <- sort(unique(additional_data$HomeTeam))
-names2 <- sort(unique(matches$Home))
-names3 <- cbind(names1,names2)
-
-for(i in 1:nrow(names3))
-{
-  additional_data[HomeTeam == names3[i,1]]$HomeTeam <- names3[i,2]
-  additional_data[AwayTeam == names3[i,1]]$AwayTeam <- names3[i,2]
-  
-}
-
-additional_data <- additional_data[,Div:=NULL]
-
-col_names <- c("Date", "Home", "Away", "Full Time Home Team Goals",
-               "Full Time Away Team Goals", "Full Time Result" ,"Half Time Home Team Goals",
-               "Half Time Away Team Goals", "Half Time Result", "Referee", "Home Team Shots",
-               "Away Team Shots", "Home Team Shots on Target", "Away Team Shots on Target",
-               "Home Team Fouls Committed", "Away Team Fouls Committed", "Home Team Corners",
-               "Away Team Corners", "Home Team Yellow Cards", "Away Team Yellow Cards",
-               "Home Team Red Cards", "Away Team Red Cards")
-
-colnames(additional_data) <- col_names
-
-comp_data <- merge(matches, additional_data, by.x = c("Match_Date", "Home", "Away"), by.y  = c("Date", "Home", "Away"), all.x = TRUE)
-
-```
-
-Firstly, matches data, odds data and the details of the matches are loaded, but the codes are not included for the simplicity. Then, by using the functions in the sources, the data become ready for further analysis below.  
-
-```{r, include=TRUE, eval = TRUE}
-
-## Add extra features to matches (winning average, score average, days before the match)
-matches <- match_processing(comp_data, 3, "t")
-
-# preprocess odd data
-odd_details=details_data_preprocessing(odd_details_raw,matches,which_bets = c("1x2"))
-
-# extract open and close odd type features from multiple bookmakers
-features=extract_features.openclose(matches,odd_details,pMissThreshold=rem_miss_threshold,trainStart,testStart)
-
-# divide data based on the provided dates 
-train_features=features[Match_Date>=trainStart & Match_Date<testStart] 
-test_features=features[Match_Date>=testStart] 
-
-#keep complete cases
-train_features <- train_features[complete.cases(train_features)]
-test_features <- test_features[complete.cases(test_features)]
-
-#Seperate Results and Data, remove matchID, MatchDate and LeagueID columns
-trainclass <- train_features$Match_Result
-traindata <- train_features[,-c(1,2,6)]
-testclass <- test_features$Match_Result
-testdata <- test_features[,-c(1,2,6)]
-
-#Results as numeric values
-trainclass <- (trainclass == "Home")*1 + (trainclass == "Away")*2
-testclass <- (testclass == "Home")*1 + (testclass == "Away")*2
-
-#Matrix of Results to be used as an input to the RPS function
-results <- matrix(1:(length(testclass)*3), 3)
-results[1,] <- (testclass == 1)*1
-results[2,] <- (testclass == 0)*1
-results[3,] <- (testclass == 2)*1
-
-cols <- names(traindata)
-
-```
-
-
-
-
-## 3.2 Prediction Models
-
-### 3.2.1 Multinomial Logistic Regression
-
-The first and best performing model in the project is multinomial regression. The below chunk contains the codes used for implementation. Firstly, training and test data will be used for prediction is prepared. By selecting cols variable, we can customize the feature selection in the model. For illustration purposes all features are used in the prediction. We are giving training results and training data as inputs for multinom function. The, we predict the probability scores and classes by using the model. The confusion matrix and accuracy are calculated by using the clasees and probabilities are used for RPS calculation.
-
-
-```{r}
-#Model inputs determined
-train2 <- traindata[,..cols]
-test2 <- testdata[,..cols]
-
-#Multinomial model requires results to be in the data
-train2$Match_Result <- trainclass
-test2$Match_Result <- testclass
-
-#Model is generated
-multinomModel <- multinom(Match_Result ~ ., data=train2)
-
-#Probabilities for each class and the results are generated
-predicted_scores <- predict (multinomModel, test2, "probs") # predict on new data
-predicted_class <- predict (multinomModel, test2)
-
-#Confusion matrix and accuracy
-confusion_matrix_multinom <- table(predicted_class, testclass)
-confusion_matrix_multinom
-accuracy_multinom <- sum(predicted_class == testclass)/length(testclass)
-accuracy_multinom
-
-prob_rearranged <- predicted_scores
-prob_rearranged[,1] <- predicted_scores[,2]
-prob_rearranged[,2] <- predicted_scores[,1]
-
-
-##  average RPS and RPS Matrix
-rps2mat <- RPS_matrix(prob_rearranged, t(results))
-rps2 <- mean(rps2mat)
-
-rps2
-```
-
-
-
-## 3.2.2 K-Nearest Neighbors
-
-KNN model uses distance matrix as input, therefore firstly the distance matrix is generated. After that the predictions are made according to the similarity to majority. Finally, the class and probability scores are used for confusion matrix, accuracy and average RPS calculations. Results are given below. 
-
-```{r}
-train1 <- traindata[,..cols]
-test1 <- testdata[,..cols]
-train1 <- as.data.table(scale(train1))
-test1 <- as.data.table(scale(test1))
-
-
-
-# Bind train and test data to be used as an input in KODAMA's knn.dist function
-x <- rbind(train1,test1)
-
-#Distances are calculated
-kdist <- KODAMA::knn.dist(x)
-
-#Prediction is made
-pred <- KODAMA::knn.predict(1:nrow(train1), (nrow(train1)+1):nrow(x), trainclass, kdist, k=95, agg.meth = "majority")
-
-# display the confusion matrix and accuracy
-confusion_matrix_knn_kodama <- table(pred,testclass)
-confusion_matrix_knn_kodama
-accuracy_knn_kodama <- sum(pred==testclass)/length(testclass)
-accuracy_knn_kodama
-# view probabilities (all class probabilities are returned)
-prob <- KODAMA::knn.probability(1:nrow(train1), (nrow(train1)+1):nrow(x), trainclass, kdist, k=95)
-
-prob_rearranged <- prob
-prob_rearranged[1,] <- prob[2,]
-prob_rearranged[2,] <- prob[1,]
-
-# RPS Results are calculated
-rps1mat <- RPS_matrix(t(prob_rearranged),t(results))
-rps1 <- mean(rps1mat)
-rps1
-```
-
-
-## 3.2.3 Bagging
-
-Prediction are made by using bagging in the below chunk. According to the probability predictions, RPS scores are calculated.
-
-```{r}
-train4 <- traindata[,..cols]
-test4 <- testdata[,..cols]
-train4 <- as.data.table(scale(train4))
-test4 <- as.data.table(scale(test4))
-
-#Bagging Model requires results to be in input data
-train4$Match_Result <- as.factor(trainclass)
-test4$Match_Result <- as.factor(testclass)
-
-#Model is generated
-match.bagging <- bagging(Match_Result ~ ., data = train4,boos = TRUE, mfinal = 10, control = (minsplit = 0))
-
-
-#Predictions are made
-match.predbegging <- predict.bagging(match.bagging, newdata = test4)
-
-#Probabilities for each class
-boosting_probs <- t(match.predbegging$prob)
-
-
-# Average RPS and RPS Matrix
-
-prob_rearranged <- boosting_probs
-prob_rearranged[1,] <- boosting_probs[2,]
-prob_rearranged[2,] <- boosting_probs[1,]
-
-rps4mat <- RPS_matrix(t(prob_rearranged),t(results))
-rps4 <- mean(rps4mat)
-rps4
-
-```
-
-## 3.2.4 Decision Tree
-
-Next chunk utilizes decision trees for prediction and calculation of confusion matrix, accuracy and RPS scores.
-
-```{r}
-
-train5 <- traindata[,..cols]
-test5 <- testdata[,..cols]
-train5 <- as.data.table(scale(train5))
-test5 <- as.data.table(scale(test5))
-test5class <- test_features$Match_Result
-train5 <- cbind(train_features$Match_Result
-,train5)
-colnames(train5)[1] <- "Match_Class"
-
-
-tree.match <- rpart(Match_Class~., train5)
-tree.pred <- predict(tree.match, test5, type = "class")
-table(tree.pred,test5class)
-
-sum(tree.pred==test5class)/nrow(test5)
-
-cv_results <- as.data.table(xpred.rpart(tree.match))
-
-which.min(tree.match$cptable)
-
-tree.prune <- prune(tree.match, cp = 0.01)
-tree_probs <- as.data.table(predict(tree.prune, test5))
-
-tprobs <- t(tree_probs)
-tprobs[1,] <- t(tree_probs[,2])
-tprobs[2,] <- t(tree_probs[,3])
-tprobs[3,] <- t(tree_probs[,1])
-
-tprobs <- t(tprobs)
-
-rps5 <- RPS_matrix(tprobs,t(results))
-rps5 <- mean(rps5)
-rps5
-```
-
-
-## 3.2.5 Random Forest
-
-Random forests are utilized below for class and probability predictions. Confusion matrix, accuracy and average RPS scores are calculated accordingly.
-
-```{r}
-
-train5 <- traindata[,..cols]
-test5 <- testdata[,..cols]
-train5 <- as.data.table(scale(train5))
-test5 <- as.data.table(scale(test5))
-train5class <- as.factor(train_features$Match_Result)
-
-rf_matches <- randomForest(train5, y = train5class, ntree = 1000, proximity = TRUE)
-prob_classes <- predict(rf_matches, test5)
-table(prob_classes, test5class)
-sum(tree.pred==test5class)/nrow(test5)
-
-probs_rf <- predict(rf_matches,test5, type = "prob")
-
-probs5 <- probs_rf
-probs5[,1] <- probs_rf[,2]
-probs5[,2] <- probs_rf[,3]
-probs5[,3] <- probs_rf[,1]
-
-
-rps6 <- RPS_matrix(probs5, t(results))
-rps6 <- mean(rps6)
-rps6
-```
-
-## 3.2.6 Boosting
-
-Boosting method is used for predictions below. Accuracy, confusion matrix and average RPS scores are calculated by using the output of the model.
-
-```{r}
-
-train5 <- cbind(traindata[,..cols],trainclass)
-test5 <- testdata[,..cols]
-
-
-gbm.model <- gbm(trainclass~., data = train5, n.trees = 100, interaction.depth = 1,
-                        n.minobsinnode = 10, shrinkage =0.1, distribution = "multinomial")
-gbm.prob <- predict(gbm.model, test5, n.trees = 100, type = "response")
-gbm.pred <- apply(gbm.prob, 1, which.max)
-table(gbm.pred-1, testclass)
-sum((gbm.pred-1)==testclass)/nrow(test5)
-
-probboost <- as.data.frame(gbm.prob)
-probboost2 <- as.data.frame(gbm.prob)
-probboost[,1] <- probboost2[,2]
-probboost[,2] <- probboost2[,1]
-
-rps7 <- RPS_matrix(probboost, t(results))
-rps7 <- mean(rps7)
-rps7
-
-```
-
-## 3.2.7 Support Vector Machines
-
-Support vector machine implementation is used for calculation of the performance metrics below.
-
-```{r}
-
-train6 <- traindata[,..cols]
-test6 <- testdata[,..cols]
-trainlabel <- as.factor(trainclass)
-testlabel <- as.factor(testclass)
-
-train6 <- data.frame(train6,trainlabel)
-
-tune.out <- tune(svm, trainlabel~., data = train6, kernel = "radial", 
-                 ranges = list(cost=c(0.001 , 0.01, 0.1, 1,5,10,100)))
-
-svmfit <- svm(trainlabel~., data = train6, kernel = "radial", cost = 0.1, scale = TRUE, prob = TRUE)
-bestsvm <- tune.out$best.model
-
-svmpred <- predict(bestsvm, test6)
-table(svmpred,testlabel)
-sum(svmpred==testlabel)/nrow(test6)
-
-svmprob <- predict(svmfit, test6, probability = TRUE)
-
-probsvm1 <- attributes(svmprob)$probabilities
-probsvm <- probsvm1
-probsvm[,1] <- probsvm1[,3]
-probsvm[,3] <- probsvm1[,1]
-
-rps8 <- RPS_matrix(probsvm, t(results))
-rps8 <- mean(rps8)
-rps8
-
-```
-
-
-# 4. Results
-
-
-
-# 7. References
-
-[1] James, Gareth, et al. An introduction to statistical learning. Vol. 112. New York: springer, 2013.
-[2] "nnet - The R Project for Statistical Computing."
-https://cran.r-project.org/web/packages/nnet/nnet.pdf. Access Date: 6 Jan. 2019.
-[3] "CRAN - Package KODAMA." 18 Oct. 2018, https://cran.r-project.org/package=KODAMA. Eriþim
-tarihi: 6 Jan. 2019.
-[4] "Package 'adabag' - The R Project for Statistical Computing." 14 Oct. 2015,
-https://cran.r-project.org/web/packages/adabag/adabag.pdf. Access Date: 6 Jan. 2019.
-[5] "Package 'rpart' - The R Project for Statistical Computing."
-https://cran.r-project.org/web/packages/rpart/rpart.pdf. Access Date: 6 Jan. 2019.
-[6] "Package 'randomForest' - The R Project for Statistical Computing."
-https://cran.r-project.org/web/packages/randomForest/randomForest.pdf. Access Date: 6 Jan. 2019.
-[7] "Package 'gbm' - The R Project for Statistical Computing." 16 Sep. 2018,
-https://cran.r-project.org/web/packages/gbm/gbm.pdf. Access Date: 6 Jan. 2019.
-[8] "e1071 - The R Project for Statistical Computing." 28 Jul. 2018,
-https://cran.r-project.org/web/packages/e1071/e1071.pdf. Access Date: 6 Jan. 2019.
-[9] Rosli, Che Mohamad Firdaus Che Mohd, et al. "A Comparative Study of Data Mining Techniques on Football Match Prediction." Journal of Physics: Conference Series. Vol. 1020. No. 1. IOP Publishing, 2018.
-[10] Hvattum, Lars Magnus, and Halvard Arntzen. "Using ELO ratings for match result prediction in association football." International Journal of forecasting 26.3 (2010): 460-470.
